@@ -24,6 +24,7 @@ const handler = NextAuth({
   pages: {
     signIn: "/auth/signin",
   },
+  secret: process.env.NEXTAUTH_SECRET, // Add this line
 });
 
 export { handler as GET, handler as POST };
