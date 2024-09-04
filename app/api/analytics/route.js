@@ -8,11 +8,14 @@ export async function GET(req) {
     const end = searchParams.get('end');
 
     const client = await clientPromise;
-    const db = client.db("analytics_db");
+    const db = client.db("analytics");
 
-    const events = await db.collection("events").find({
-      timestamp: { $gte: new Date(start), $lte: new Date(end) }
-    }).toArray();
+    const events = await db.collection("events")
+      .find({
+        timestamp: { $gte: new Date(start), $lte: new Date(end) }
+      })
+      .limit(1000)  // Limit the number of results to prevent timeouts
+      .toArray();
 
     return NextResponse.json(events || []);
   } catch (error) {
@@ -24,7 +27,7 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const client = await clientPromise;
-    const db = client.db("analytics_db");
+    const db = client.db("analytics");
 
     const body = await req.json();
     console.log('Received event:', body);
@@ -41,13 +44,8 @@ export async function POST(req) {
   }
 }
 
-export async function OPTIONS(req) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 }
