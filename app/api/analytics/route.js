@@ -1,31 +1,32 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const start = new Date(searchParams.get('start'));
-  const end = new Date(searchParams.get('end'));
-
+export async function POST(req) {
   try {
     const client = await clientPromise;
-    const db = client.db("analytics");
-    
-    const pageviews = await db.collection("events")
-      .aggregate([
-        { $match: { name: 'pageview', timestamp: { $gte: start, $lte: end } } },
-        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, count: { $sum: 1 } } },
-        { $sort: { _id: 1 } }
-      ])
-      .toArray();
+    const db = client.db("your_database_name");
 
-    // Similar aggregations for sources, topPages, locations, and devices...
+    const body = await req.json();
+    console.log('Received request:', req.method, req.url);
+    console.log('Request body:', body);
 
-    return NextResponse.json({
-      pageviews: pageviews.map(pv => ({ date: pv._id, count: pv.count })),
-      // Add other aggregated data here...
-    });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ status: 'error', message: e.message }, { status: 500 });
+    // Insert the event into MongoDB
+    await db.collection("analytics_events").insertOne(body);
+
+    return NextResponse.json({ message: 'Event recorded successfully' });
+  } catch (error) {
+    console.error('Error recording event:', error);
+    return NextResponse.json({ error: 'Failed to record event' }, { status: 500 });
   }
+}
+
+export async function OPTIONS(req) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
