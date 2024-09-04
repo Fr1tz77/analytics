@@ -1,21 +1,19 @@
-import { NextResponse } from 'next/server';
-import clientPromise from '../../../lib/mongodb';
-
-// Remove the Edge runtime specification
-// export const runtime = 'edge';
+import { NextResponse } from 'next/server'
+import clientPromise from '../../../lib/mongodb'
+import { UAParser } from 'ua-parser-js'
 
 export async function GET(req) {
   console.log("GET request received");
   try {
-    const { searchParams } = new URL(req.url);
-    const start = searchParams.get('start');
-    const end = searchParams.get('end');
-    const metric = searchParams.get('metric') || 'pageviews';
+    const { searchParams } = new URL(req.url)
+    const start = searchParams.get('start')
+    const end = searchParams.get('end')
+    const metric = searchParams.get('metric') || 'pageviews'
 
     console.log(`Fetching ${metric} from ${start} to ${end}`);
 
-    const client = await clientPromise;
-    const db = client.db("analytics");
+    const client = await clientPromise
+    const db = client.db("analytics")
 
     const pipeline = [
       {
@@ -76,35 +74,35 @@ export async function GET(req) {
 
     console.log(`Found ${events.length} data points`);
 
-    return NextResponse.json({ events, topSources, topPages, countries, browsers });
+    return NextResponse.json({ events, topSources, topPages, countries, browsers })
   } catch (error) {
-    console.error('Error fetching analytics:', error);
-    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
+    console.error('Error fetching analytics:', error)
+    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
   }
 }
 
 export async function POST(req) {
   console.log("POST request received");
   try {
-    const client = await clientPromise;
-    const db = client.db("analytics");
+    const client = await clientPromise
+    const db = client.db("analytics")
 
-    const body = await req.json();
-    console.log('Received event:', body);
+    const body = await req.json()
+    console.log('Received event:', body)
 
     // Extract browser and country from user agent
-    const ua = require('ua-parser-js')(body.userAgent);
-    body.browser = ua.browser.name;
+    const ua = new UAParser(body.userAgent);
+    body.browser = ua.getBrowser().name;
     body.country = body.country || 'Unknown'; // You might want to use a geolocation service here
 
-    const result = await db.collection("events").insertOne(body);
+    const result = await db.collection("events").insertOne(body)
 
     console.log('Inserted event with ID:', result.insertedId);
 
-    return NextResponse.json({ message: 'Event recorded successfully', id: result.insertedId });
+    return NextResponse.json({ message: 'Event recorded successfully', id: result.insertedId })
   } catch (error) {
-    console.error('Error recording event:', error);
-    return NextResponse.json({ error: 'Failed to record event' }, { status: 500 });
+    console.error('Error recording event:', error)
+    return NextResponse.json({ error: 'Failed to record event' }, { status: 500 })
   }
 }
 

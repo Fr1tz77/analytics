@@ -54,6 +54,7 @@ export default function Home() {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
@@ -71,7 +72,7 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 max-w-6xl">
       <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
       <div className="mb-4 flex space-x-4">
         <DatePicker
@@ -107,54 +108,72 @@ export default function Home() {
               </button>
             ))}
           </div>
-          <div className="w-full h-64 mb-8">
+          <div className="w-full h-96 mb-8">
             <Line options={options} data={chartData} />
           </div>
-          <div className="grid grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div>
               <h2 className="text-xl font-semibold mb-2">Top Sources</h2>
-              <ul>
-                {analyticsData.topSources.map(source => (
-                  <li key={source._id}>{source._id}: {source.count}</li>
-                ))}
-              </ul>
+              {analyticsData.topSources.length > 0 ? (
+                <ul>
+                  {analyticsData.topSources.map(source => (
+                    <li key={source._id}>{source._id}: {source.count}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No source data available for the selected period.</p>
+              )}
             </div>
             <div>
               <h2 className="text-xl font-semibold mb-2">Top Pages</h2>
-              <ul>
-                {analyticsData.topPages.map(page => (
-                  <li key={page._id}>{page._id}: {page.count}</li>
-                ))}
-              </ul>
+              {analyticsData.topPages.length > 0 ? (
+                <ul>
+                  {analyticsData.topPages.map(page => (
+                    <li key={page._id}>{page._id}: {page.count}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No page data available for the selected period.</p>
+              )}
             </div>
           </div>
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-2">Visitors by Country</h2>
-            <ComposableMap>
-              <Geographies geography="/world-110m.json">
-                {({ geographies }) =>
-                  geographies.map(geo => {
-                    const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={country ? `rgba(75, 192, 192, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
-                        stroke="#D6D6DA"
-                      />
-                    );
-                  })
-                }
-              </Geographies>
-            </ComposableMap>
+            {analyticsData.countries.length > 0 ? (
+              <div className="h-96">
+                <ComposableMap>
+                  <Geographies geography="/world-110m.json">
+                    {({ geographies }) =>
+                      geographies.map(geo => {
+                        const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
+                        return (
+                          <Geography
+                            key={geo.rsmKey}
+                            geography={geo}
+                            fill={country ? `rgba(75, 192, 192, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
+                            stroke="#D6D6DA"
+                          />
+                        );
+                      })
+                    }
+                  </Geographies>
+                </ComposableMap>
+              </div>
+            ) : (
+              <p>No country data available for the selected period.</p>
+            )}
           </div>
           <div>
             <h2 className="text-xl font-semibold mb-2">Browsers</h2>
-            <ul>
-              {analyticsData.browsers.map(browser => (
-                <li key={browser._id}>{browser._id}: {browser.count}</li>
-              ))}
-            </ul>
+            {analyticsData.browsers.length > 0 ? (
+              <ul>
+                {analyticsData.browsers.map(browser => (
+                  <li key={browser._id}>{browser._id}: {browser.count}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No browser data available for the selected period.</p>
+            )}
           </div>
         </>
       )}
