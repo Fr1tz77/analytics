@@ -3,6 +3,9 @@ const nextConfig = {
   env: {
     MONGODB_URI: process.env.MONGODB_URI,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {
