@@ -1,30 +1,38 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import NextAuth from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
 
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        const validUsername = process.env.AUTH_USERNAME;
-        const validPassword = process.env.AUTH_PASSWORD;
-
-        if (credentials.username === validUsername && credentials.password === validPassword) {
-          return { id: 1, name: "Admin" };
-        } else {
-          return null;
+        if (credentials.username === process.env.AUTH_USERNAME &&
+            credentials.password === process.env.AUTH_PASSWORD) {
+          return { id: 1, name: credentials.username }
         }
+        return null
       }
     })
   ],
   pages: {
-    signIn: "/auth/signin",
+    signIn: '/auth/signin',
   },
-  secret: process.env.NEXTAUTH_SECRET, // Add this line
-});
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
+      session.user.id = token.id
+      return session
+    }
+  }
+})
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }

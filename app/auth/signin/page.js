@@ -12,15 +12,14 @@ export default function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await signIn("credentials", {
+      redirect: false,
       username,
       password,
-      redirect: false,
     });
     if (result.ok) {
       router.push("/");
     } else {
-      // Handle error
-      console.error("Sign in failed");
+      alert("Sign in failed");
     }
   };
 

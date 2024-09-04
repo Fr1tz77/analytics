@@ -9,18 +9,17 @@ export default function ProtectedPage({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-    }
-  }, [status, router]);
+    if (status === "loading") return; // Do nothing while loading
+    if (!session) router.push("/auth/signin"); // Redirect to login if not authenticated
+  }, [session, status, router]);
 
   if (status === "loading") {
     return <div>Loading...</div>;
   }
 
-  if (status === "authenticated") {
-    return <>{children}</>;
+  if (!session) {
+    return null; // Or a custom unauthorized component
   }
 
-  return null;
+  return children;
 }
