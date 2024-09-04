@@ -14,7 +14,7 @@ export async function GET(req) {
       timestamp: { $gte: new Date(start), $lte: new Date(end) }
     }).toArray();
 
-    return NextResponse.json(events);
+    return NextResponse.json(events || []);
   } catch (error) {
     console.error('Error fetching analytics:', error);
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });

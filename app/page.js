@@ -10,104 +10,76 @@ import ProtectedPage from "../components/ProtectedPage";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-function Dashboard() {
-  const [darkMode, setDarkMode] = useState(false);
+export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
   const [analyticsData, setAnalyticsData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [startDate, endDate]);
 
   const fetchAnalyticsData = async () => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
-      setAnalyticsData(data);
+      setAnalyticsData(data || []);
       setError(null);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setError('Failed to fetch analytics data. Please try again later.');
+      setAnalyticsData([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const getChartData = () => {
-    if (!analyticsData) return { dates: [], data: [] };
-    return {
-      dates: analyticsData.pageviews.map(item => new Date(item.date).toLocaleDateString()),
-      data: analyticsData.pageviews.map(item => item.count)
-    };
-  };
-
-  const { dates, data } = getChartData();
-
   const chartData = {
-    labels: dates,
+    labels: analyticsData.map(item => new Date(item.timestamp).toLocaleDateString()),
     datasets: [
       {
-        label: 'Pageviews',
-        data: data,
+        label: 'Page Views',
+        data: analyticsData.map(item => item.count),
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
-    ],
+    ]
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Page Views Over Time',
+      },
+    },
+  };
 
   return (
-    <main className={`min-h-screen p-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        className={`mb-4 px-4 py-2 rounded ${darkMode ? 'bg-white text-black' : 'bg-black text-white'}`}
-      >
-        Toggle {darkMode ? 'Light' : 'Dark'} Mode
-      </button>
-
-      <h1 className="text-3xl font-bold mb-8">Website Analytics</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-opacity-10 bg-gray-200 p-4 rounded-lg col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Traffic Overview</h2>
-          <div className="flex justify-between items-center mb-4">
-            <DatePicker
-              selected={startDate}
-              onChange={(date) => setStartDate(date)}
-              selectsStart
-              startDate={startDate}
-              endDate={endDate}
-              className="p-2 rounded border"
-            />
-            <DatePicker
-              selected={endDate}
-              onChange={(date) => setEndDate(date)}
-              selectsEnd
-              startDate={startDate}
-              endDate={endDate}
-              minDate={startDate}
-              className="p-2 rounded border"
-            />
-          </div>
-          <Line data={chartData} />
-        </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
+      <div className="mb-4">
+        <DatePicker selected={startDate} onChange={date => setStartDate(date)} />
+        <DatePicker selected={endDate} onChange={date => setEndDate(date)} />
       </div>
-    </main>
-  );
-}
-
-export default function Home() {
-  return (
-    <ProtectedPage>
-      <Dashboard />
-    </ProtectedPage>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && analyticsData.length === 0 && <p>No data available for the selected date range.</p>}
+      {!loading && !error && analyticsData.length > 0 && (
+        <div className="w-full h-64">
+          <Line options={options} data={chartData} />
+        </div>
+      )}
+    </div>
   );
 }
