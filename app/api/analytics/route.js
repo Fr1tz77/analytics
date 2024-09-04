@@ -5,10 +5,13 @@ import clientPromise from '../../../lib/mongodb';
 // export const runtime = 'edge';
 
 export async function GET(req) {
+  console.log("GET request received");
   try {
     const { searchParams } = new URL(req.url);
     const start = searchParams.get('start');
     const end = searchParams.get('end');
+
+    console.log(`Fetching events from ${start} to ${end}`);
 
     const client = await clientPromise;
     const db = client.db("analytics");
@@ -20,6 +23,8 @@ export async function GET(req) {
       .limit(1000)  // Limit the number of results to prevent timeouts
       .toArray();
 
+    console.log(`Found ${events.length} events`);
+
     return NextResponse.json(events || []);
   } catch (error) {
     console.error('Error fetching analytics:', error);
@@ -28,6 +33,7 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  console.log("POST request received");
   try {
     const client = await clientPromise;
     const db = client.db("analytics");
@@ -35,14 +41,27 @@ export async function POST(req) {
     const body = await req.json();
     console.log('Received event:', body);
 
-    await db.collection("events").insertOne({
+    const result = await db.collection("events").insertOne({
       ...body,
       timestamp: new Date()
     });
 
-    return NextResponse.json({ message: 'Event recorded successfully' });
+    console.log('Inserted event with ID:', result.insertedId);
+
+    return NextResponse.json({ message: 'Event recorded successfully', id: result.insertedId });
   } catch (error) {
     console.error('Error recording event:', error);
     return NextResponse.json({ error: 'Failed to record event' }, { status: 500 });
   }
+}
+
+export async function OPTIONS(req) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
 }

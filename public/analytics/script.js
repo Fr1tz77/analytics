@@ -1,49 +1,34 @@
-(function() {
-  var currentScript = document.currentScript;
-  var apiEndpoint = 'https://analytics-tan-psi.vercel.app/api/analytics/record-event';
+const ANALYTICS_URL = 'https://analytics-tan-psi.vercel.app/api/analytics';
 
-  function sendEvent(eventName, eventData) {
-    var data = {
-      name: eventName,
-      url: window.location.href,
-      referrer: document.referrer || null,
-      domain: currentScript.getAttribute('data-domain'),
-      ...eventData
-    };
+function sendEvent(eventData) {
+  fetch(ANALYTICS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(eventData),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => console.log('Event sent successfully:', data))
+  .catch(error => console.error('Error sending event:', error));
+}
 
-    console.log('Sending event:', data);  // Debug log
-
-    fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-      mode: 'cors'
-    })
-    .then(response => response.json())
-    .then(result => console.log('Event recorded:', result))  // Debug log
-    .catch(error => console.error('Error sending event:', error));
-  }
-
-  function trackPageView() {
-    console.log('Tracking pageview');  // Debug log
-    sendEvent('pageview');
-  }
-
-  // Track initial pageview with a small delay
-  setTimeout(trackPageView, 100);
-
-  // Track pageviews on history changes
-  var pushState = history.pushState;
-  history.pushState = function() {
-    pushState.apply(history, arguments);
-    trackPageView();
+function trackPageView() {
+  const eventData = {
+    name: 'pageview',
+    url: window.location.href,
+    referrer: document.referrer,
+    domain: window.location.hostname,
   };
-  window.addEventListener('popstate', trackPageView);
+  
+  sendEvent(eventData);
+}
 
-  // Expose the sendEvent function globally
-  window.sendAnalyticsEvent = sendEvent;
+document.addEventListener('DOMContentLoaded', trackPageView);
 
-  console.log('Analytics script loaded');  // Debug log
-})();
+window.trackAnalyticsEvent = sendEvent;
