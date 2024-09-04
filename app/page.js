@@ -129,18 +129,34 @@ export default function Home() {
             </div>
           </div>
           <div className="mb-8">
-      <div className="w-full h-64">
-        <Line options={options} data={chartData} />
-      </div>
-      {!loading && !error && analyticsData.length === 0 && (
-        <p className="text-gray-600 mt-4">No data available for the selected date range.</p>
-      )}
-      {!loading && !error && analyticsData.length > 0 && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-2">Data Summary</h2>
-          <p>Total events: {analyticsData.length}</p>
-          <p>Date range: {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}</p>
-        </div>
+            <h2 className="text-xl font-semibold mb-2">Visitors by Country</h2>
+            <ComposableMap>
+              <Geographies geography="/world-110m.json">
+                {({ geographies }) =>
+                  geographies.map(geo => {
+                    const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={country ? `rgba(75, 192, 192, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
+                        stroke="#D6D6DA"
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ComposableMap>
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Browsers</h2>
+            <ul>
+              {analyticsData.browsers.map(browser => (
+                <li key={browser._id}>{browser._id}: {browser.count}</li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
     </div>
   );
