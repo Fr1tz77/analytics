@@ -1,49 +1,40 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import cors from 'cors';
 
-const allowedOrigin = process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || 'https://appbars.co';
+const corsMiddleware = cors({
+  methods: ['POST', 'GET', 'HEAD'],
+  origin: process.env.NEXT_PUBLIC_ALLOWED_ORIGIN,
+});
 
-export async function POST(request) {
-  console.log('Received event request');  // Debug log
-  const eventData = await request.json();
-  console.log('Event data:', eventData);  // Debug log
-  
-  try {
-    const client = await clientPromise;
-    const db = client.db("analytics");
-    const result = await db.collection("events").insertOne({
-      ...eventData,
-      timestamp: new Date()
+export async function POST(req) {
+  // Run the CORS middleware
+  await new Promise((resolve, reject) => {
+    corsMiddleware(req, NextResponse.next(), (result) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
     });
-    console.log('Event inserted:', result);  // Debug log
-    
-    return new NextResponse(JSON.stringify({ status: 'ok' }), {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': allowedOrigin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
-  } catch (e) {
-    console.error('Error recording event:', e);
-    return new NextResponse(JSON.stringify({ status: 'error', message: e.message }), {
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': allowedOrigin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
-  }
+  });
+
+  const body = await req.json();
+  console.log('Received request:', req.method, req.url);
+  console.log('Request body:', body);
+
+  // Your event recording logic here
+  // For example:
+  // await recordEvent(body);
+
+  return NextResponse.json({ message: 'Event recorded successfully' });
 }
 
-export async function OPTIONS(request) {
+export async function OPTIONS(req) {
+  // Handle CORS preflight request
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': allowedOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
