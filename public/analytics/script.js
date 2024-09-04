@@ -11,6 +11,8 @@ function sendEvent(eventData) {
     timestamp: new Date().toISOString()
   };
 
+  console.log('Sending event data:', data);
+
   fetch(ANALYTICS_URL, {
     method: 'POST',
     headers: {
@@ -25,7 +27,10 @@ function sendEvent(eventData) {
     return response.json();
   })
   .then(data => console.log('Event sent successfully:', data))
-  .catch(error => console.error('Error sending event:', error));
+  .catch(error => {
+    console.error('Error sending event:', error);
+    console.error('Error details:', error.message);
+  });
 }
 
 function trackPageView() {

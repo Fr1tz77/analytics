@@ -14,10 +14,17 @@ export async function GET(req) {
     const client = await clientPromise
     const db = client.db("analytics")
 
+    // Log the total number of documents in the collection
+    const totalDocs = await db.collection("events").countDocuments();
+    console.log(`Total documents in collection: ${totalDocs}`);
+
     const pipeline = [
       {
         $match: {
-          timestamp: { $gte: new Date(start), $lte: new Date(end) }
+          timestamp: { 
+            $gte: new Date(start), 
+            $lte: new Date(end) 
+          }
         }
       },
       {
@@ -34,13 +41,16 @@ export async function GET(req) {
           pageviews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
           avgDuration: { $cond: [{ $eq: ["$pageviews", 0] }, 0, { $divide: ["$totalDuration", "$pageviews"] }] },
-          bounceRate: { $literal: 0 } // We don't have enough info to calculate this accurately
+          bounceRate: { $literal: 0 }
         }
       },
       { $sort: { date: 1 } }
     ];
 
     const events = await db.collection("events").aggregate(pipeline).toArray();
+
+    // Log the number of events found
+    console.log(`Found ${events.length} events for the selected date range`);
 
     // Additional queries for top sources, pages, countries, and browsers
     const topSources = await db.collection("events").aggregate([
@@ -91,11 +101,6 @@ export async function POST(req) {
 
     const body = await req.json()
     console.log('Received event:', body)
-
-    // Extract browser and country from user agent
-    const ua = new UAParser(body.userAgent);
-    body.browser = ua.getBrowser().name;
-    body.country = body.country || 'Unknown'; // You might want to use a geolocation service here
 
     const result = await db.collection("events").insertOne(body)
 
