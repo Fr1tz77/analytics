@@ -7,7 +7,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
-import { MoonIcon, SunIcon } from '@heroicons/react/solid';
+import { MoonIcon, SunIcon } from '@heroicons/react/24/solid';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
