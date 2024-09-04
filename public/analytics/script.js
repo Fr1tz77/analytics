@@ -1,6 +1,6 @@
 (function() {
   var currentScript = document.currentScript;
-  var apiEndpoint = '/api/analytics/record-event';
+  var apiEndpoint = 'https://analytics-tan-psi.vercel.app/api/analytics/record-event';
 
   function sendEvent(eventName, eventData) {
     var data = {
@@ -17,6 +17,7 @@
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      mode: 'cors'
     }).catch(console.error);
   }
 

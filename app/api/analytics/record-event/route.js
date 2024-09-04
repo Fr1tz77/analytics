@@ -12,9 +12,34 @@ export async function POST(request) {
       timestamp: new Date()
     });
     
-    return NextResponse.json({ status: 'ok' });
+    return new NextResponse(JSON.stringify({ status: 'ok' }), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://appbars.co',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ status: 'error', message: e.message }, { status: 500 });
+    return new NextResponse(JSON.stringify({ status: 'error', message: e.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://appbars.co',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': 'https://appbars.co',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
