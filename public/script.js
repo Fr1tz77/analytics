@@ -1,4 +1,4 @@
-const ANALYTICS_URL = 'https://analytics-tan-psi.vercel.app/api/analytics/record-event';
+const ANALYTICS_URL = 'https://analytics-tan-psi.vercel.app/api/analytics';
 
 async function sendEvent(eventData) {
   try {
@@ -23,19 +23,17 @@ async function sendEvent(eventData) {
 
 function trackPageView() {
   const eventData = {
-    type: 'pageview',
+    name: 'pageview',
     url: window.location.href,
     referrer: document.referrer,
-    timestamp: new Date().toISOString(),
+    domain: window.location.hostname,
   };
   
-  sendEvent(eventData)
-    .then(() => console.log('Pageview tracked successfully'))
-    .catch(error => console.error('Error tracking pageview:', error));
+  sendEvent(eventData);
 }
 
 // Call this when the script loads
-trackPageView();
+setTimeout(trackPageView, 100);
 
-// Expose this function globally for tracking other events
+// Expose this function globally if you want to track other events
 window.trackAnalyticsEvent = sendEvent;

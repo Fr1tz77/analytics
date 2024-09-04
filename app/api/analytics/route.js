@@ -8,10 +8,9 @@ export async function GET(req) {
     const end = searchParams.get('end');
 
     const client = await clientPromise;
-    const db = client.db("your_database_name");
+    const db = client.db("analytics_db");
 
-    // Query MongoDB for analytics data within the date range
-    const events = await db.collection("analytics_events").find({
+    const events = await db.collection("events").find({
       timestamp: { $gte: new Date(start), $lte: new Date(end) }
     }).toArray();
 
@@ -25,14 +24,12 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const client = await clientPromise;
-    const db = client.db("your_database_name");
+    const db = client.db("analytics_db");
 
     const body = await req.json();
-    console.log('Received request:', req.method, req.url);
-    console.log('Request body:', body);
+    console.log('Received event:', body);
 
-    // Insert the event into MongoDB
-    await db.collection("analytics_events").insertOne({
+    await db.collection("events").insertOne({
       ...body,
       timestamp: new Date()
     });
@@ -48,7 +45,7 @@ export async function OPTIONS(req) {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },

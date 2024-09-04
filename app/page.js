@@ -12,9 +12,9 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 function Dashboard() {
   const [darkMode, setDarkMode] = useState(false);
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
+  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
-  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,8 +23,6 @@ function Dashboard() {
   }, [startDate, endDate]);
 
   const fetchAnalyticsData = async () => {
-    setIsLoading(true);
-    setError(null);
     try {
       const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}`);
       if (!response.ok) {
@@ -32,9 +30,10 @@ function Dashboard() {
       }
       const data = await response.json();
       setAnalyticsData(data);
+      setError(null);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      setError(error.message);
+      setError('Failed to fetch analytics data. Please try again later.');
     } finally {
       setIsLoading(false);
     }
