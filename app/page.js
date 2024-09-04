@@ -45,7 +45,7 @@ export default function Home() {
     datasets: [
       {
         label: 'Page Views',
-        data: analyticsData.map(item => item.count),
+        data: analyticsData.map(item => item.count || 1), // Default to 1 if count is not present
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
@@ -63,21 +63,51 @@ export default function Home() {
         text: 'Page Views Over Time',
       },
     },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
-      <div className="mb-4">
-        <DatePicker selected={startDate} onChange={date => setStartDate(date)} />
-        <DatePicker selected={endDate} onChange={date => setEndDate(date)} />
+      <div className="mb-4 flex space-x-4">
+        <DatePicker
+          selected={startDate}
+          onChange={date => setStartDate(date)}
+          selectsStart
+          startDate={startDate}
+          endDate={endDate}
+          className="p-2 border rounded"
+        />
+        <DatePicker
+          selected={endDate}
+          onChange={date => setEndDate(date)}
+          selectsEnd
+          startDate={startDate}
+          endDate={endDate}
+          minDate={startDate}
+          className="p-2 border rounded"
+        />
       </div>
-      {loading && <p>Loading...</p>}
+      {loading && <p className="text-gray-600">Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
-      {!loading && !error && analyticsData.length === 0 && <p>No data available for the selected date range.</p>}
+      <div className="w-full h-64">
+        <Line options={options} data={chartData} />
+      </div>
+      {!loading && !error && analyticsData.length === 0 && (
+        <p className="text-gray-600 mt-4">No data available for the selected date range.</p>
+      )}
       {!loading && !error && analyticsData.length > 0 && (
-        <div className="w-full h-64">
-          <Line options={options} data={chartData} />
+        <div className="mt-4">
+          <h2 className="text-xl font-semibold mb-2">Data Summary</h2>
+          <p>Total events: {analyticsData.length}</p>
+          <p>Date range: {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}</p>
         </div>
       )}
     </div>
