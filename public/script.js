@@ -32,8 +32,8 @@ function trackPageView() {
   sendEvent(eventData);
 }
 
-// Call this when the script loads
-setTimeout(trackPageView, 100);
+// Use DOMContentLoaded event instead of setTimeout
+document.addEventListener('DOMContentLoaded', trackPageView);
 
 // Expose this function globally if you want to track other events
 window.trackAnalyticsEvent = sendEvent;
