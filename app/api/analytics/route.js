@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
 
+export const runtime = 'edge' // This is the new way to set the runtime
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -42,10 +44,4 @@ export async function POST(req) {
     console.error('Error recording event:', error);
     return NextResponse.json({ error: 'Failed to record event' }, { status: 500 });
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
 }
