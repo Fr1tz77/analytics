@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import clientPromise from '../../../lib/mongodb'
-import { UAParser } from 'ua-parser-js'
 
 export async function GET(req) {
   console.log("GET request received");
@@ -24,10 +23,9 @@ export async function GET(req) {
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
-          pageviews: { $sum: { $cond: [{ $eq: ["$type", "pageview"] }, 1, 0] } },
+          pageviews: { $sum: 1 },
           uniqueVisitors: { $addToSet: "$userAgent" },
-          totalDuration: { $sum: { $cond: [{ $eq: ["$type", "duration"] }, "$duration", 0] } },
-          bounces: { $sum: { $cond: [{ $and: [{ $eq: ["$type", "pageview"] }, { $eq: ["$isNewVisit", true] }] }, 1, 0] } },
+          totalDuration: { $sum: { $ifNull: ["$duration", 0] } },
         }
       },
       {
@@ -35,8 +33,8 @@ export async function GET(req) {
           date: "$_id",
           pageviews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
-          avgDuration: { $divide: ["$totalDuration", "$pageviews"] },
-          bounceRate: { $divide: ["$bounces", "$pageviews"] }
+          avgDuration: { $cond: [{ $eq: ["$pageviews", 0] }, 0, { $divide: ["$totalDuration", "$pageviews"] }] },
+          bounceRate: 0 // We don't have enough info to calculate this accurately
         }
       },
       { $sort: { date: 1 } }
@@ -46,33 +44,37 @@ export async function GET(req) {
 
     // Additional queries for top sources, pages, countries, and browsers
     const topSources = await db.collection("events").aggregate([
-      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
-      { $group: { _id: "$referrer", count: { $sum: 1 } } },
+      { $match: { timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $group: { _id: { $ifNull: ["$referrer", "Direct"] }, count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
     ]).toArray();
 
     const topPages = await db.collection("events").aggregate([
-      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $match: { timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
       { $group: { _id: "$path", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
     ]).toArray();
 
     const countries = await db.collection("events").aggregate([
-      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $match: { timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
       { $group: { _id: "$country", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]).toArray();
 
     const browsers = await db.collection("events").aggregate([
-      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $match: { timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
       { $group: { _id: "$browser", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
     ]).toArray();
 
     console.log(`Found ${events.length} data points`);
+    console.log('Top Sources:', topSources);
+    console.log('Top Pages:', topPages);
+    console.log('Countries:', countries);
+    console.log('Browsers:', browsers);
 
     return NextResponse.json({ events, topSources, topPages, countries, browsers })
   } catch (error) {

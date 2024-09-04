@@ -6,7 +6,8 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps"
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { MoonIcon, SunIcon } from '@heroicons/react/solid';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -17,10 +18,19 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('pageviews');
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [startDate, endDate, selectedMetric]);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
@@ -30,6 +40,7 @@ export default function Home() {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
+      console.log('Fetched data:', data); // Log the fetched data
       setAnalyticsData(data);
       setError(null);
     } catch (error) {
@@ -41,7 +52,7 @@ export default function Home() {
   };
 
   const chartData = {
-    labels: analyticsData.events.map(item => item.date),
+    labels: analyticsData.events.map(item => new Date(item.date).toLocaleDateString()),
     datasets: [
       {
         label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
@@ -72,111 +83,138 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
-      <div className="mb-4 flex space-x-4">
-        <DatePicker
-          selected={startDate}
-          onChange={date => setStartDate(date)}
-          selectsStart
-          startDate={startDate}
-          endDate={endDate}
-          className="p-2 border rounded"
-        />
-        <DatePicker
-          selected={endDate}
-          onChange={date => setEndDate(date)}
-          selectsEnd
-          startDate={startDate}
-          endDate={endDate}
-          minDate={startDate}
-          className="p-2 border rounded"
-        />
-      </div>
-      {loading && <p className="text-gray-600">Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      {!loading && !error && (
-        <>
-          <div className="flex justify-between mb-4">
-            {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
-              <button
-                key={metric}
-                onClick={() => setSelectedMetric(metric)}
-                className={`px-4 py-2 rounded ${selectedMetric === metric ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-              >
-                {metric.charAt(0).toUpperCase() + metric.slice(1)}
-              </button>
-            ))}
+    <ProtectedPage>
+      <div className={`min-h-screen p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-gray-100 text-gray-900'}`}>
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+            >
+              {darkMode ? <SunIcon className="h-6 w-6 text-yellow-400" /> : <MoonIcon className="h-6 w-6 text-gray-700" />}
+            </button>
           </div>
-          <div className="w-full h-96 mb-8">
-            <Line options={options} data={chartData} />
+          <div className="mb-6 flex space-x-4">
+            <DatePicker
+              selected={startDate}
+              onChange={date => setStartDate(date)}
+              selectsStart
+              startDate={startDate}
+              endDate={endDate}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
+            <DatePicker
+              selected={endDate}
+              onChange={date => setEndDate(date)}
+              selectsEnd
+              startDate={startDate}
+              endDate={endDate}
+              minDate={startDate}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Top Sources</h2>
-              {analyticsData.topSources.length > 0 ? (
-                <ul>
-                  {analyticsData.topSources.map(source => (
-                    <li key={source._id}>{source._id}: {source.count}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No source data available for the selected period.</p>
-              )}
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Top Pages</h2>
-              {analyticsData.topPages.length > 0 ? (
-                <ul>
-                  {analyticsData.topPages.map(page => (
-                    <li key={page._id}>{page._id}: {page.count}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No page data available for the selected period.</p>
-              )}
-            </div>
-          </div>
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-2">Visitors by Country</h2>
-            {analyticsData.countries.length > 0 ? (
-              <div className="h-96">
-                <ComposableMap>
-                  <Geographies geography="/world-110m.json">
-                    {({ geographies }) =>
-                      geographies.map(geo => {
-                        const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
-                        return (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            fill={country ? `rgba(75, 192, 192, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
-                            stroke="#D6D6DA"
-                          />
-                        );
-                      })
-                    }
-                  </Geographies>
-                </ComposableMap>
-              </div>
-            ) : (
-              <p>No country data available for the selected period.</p>
-            )}
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Browsers</h2>
-            {analyticsData.browsers.length > 0 ? (
-              <ul>
-                {analyticsData.browsers.map(browser => (
-                  <li key={browser._id}>{browser._id}: {browser.count}</li>
+          {loading && <p className="text-gray-600 dark:text-gray-400">Loading...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+          {!loading && !error && (
+            <>
+              <div className="flex justify-between mb-6">
+                {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
+                  <button
+                    key={metric}
+                    onClick={() => setSelectedMetric(metric)}
+                    className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                      selectedMetric === metric 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {metric.charAt(0).toUpperCase() + metric.slice(1)}
+                  </button>
                 ))}
-              </ul>
-            ) : (
-              <p>No browser data available for the selected period.</p>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+                <div className="w-full h-96 px-4">
+                  <Line options={options} data={chartData} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Top Sources</h2>
+                  {analyticsData.topSources && analyticsData.topSources.length > 0 ? (
+                    <ul className="space-y-2">
+                      {analyticsData.topSources.map(source => (
+                        <li key={source._id} className="flex justify-between">
+                          <span>{source._id || 'Direct'}</span>
+                          <span className="font-semibold">{source.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">No source data available for the selected period.</p>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Top Pages</h2>
+                  {analyticsData.topPages && analyticsData.topPages.length > 0 ? (
+                    <ul className="space-y-2">
+                      {analyticsData.topPages.map(page => (
+                        <li key={page._id} className="flex justify-between">
+                          <span>{page._id}</span>
+                          <span className="font-semibold">{page.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">No page data available for the selected period.</p>
+                  )}
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+                <h2 className="text-xl font-semibold mb-4">Visitors by Country</h2>
+                {analyticsData.countries && analyticsData.countries.length > 0 ? (
+                  <div className="h-96">
+                    <ComposableMap>
+                      <Geographies geography="/world-110m.json">
+                        {({ geographies }) =>
+                          geographies.map(geo => {
+                            const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
+                            return (
+                              <Geography
+                                key={geo.rsmKey}
+                                geography={geo}
+                                fill={country ? `rgba(59, 130, 246, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
+                                stroke="#D6D6DA"
+                              />
+                            );
+                          })
+                        }
+                      </Geographies>
+                    </ComposableMap>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No country data available for the selected period.</p>
+                )}
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Browsers</h2>
+                {analyticsData.browsers && analyticsData.browsers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {analyticsData.browsers.map(browser => (
+                      <li key={browser._id} className="flex justify-between">
+                        <span>{browser._id}</span>
+                        <span className="font-semibold">{browser.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No browser data available for the selected period.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </ProtectedPage>
   );
 }
