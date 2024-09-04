@@ -143,7 +143,13 @@ export default function Home() {
           </div>
           {renderSection("Analytics Over Time", 
             <div className="w-full h-96 px-4">
-              <Line options={options} data={chartData} />
+              {loading ? (
+                <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
+              ) : error ? (
+                <p className="text-red-500">{error}</p>
+              ) : (
+                <Line options={options} data={chartData} />
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

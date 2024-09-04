@@ -34,7 +34,7 @@ export async function GET(req) {
           pageviews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
           avgDuration: { $cond: [{ $eq: ["$pageviews", 0] }, 0, { $divide: ["$totalDuration", "$pageviews"] }] },
-          bounceRate: 0 // We don't have enough info to calculate this accurately
+          bounceRate: { $literal: 0 } // We don't have enough info to calculate this accurately
         }
       },
       { $sort: { date: 1 } }
