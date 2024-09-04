@@ -11,6 +11,8 @@
       ...eventData
     };
 
+    console.log('Sending event:', data);  // Debug log
+
     fetch(apiEndpoint, {
       method: 'POST',
       headers: {
@@ -18,15 +20,19 @@
       },
       body: JSON.stringify(data),
       mode: 'cors'
-    }).catch(console.error);
+    })
+    .then(response => response.json())
+    .then(result => console.log('Event recorded:', result))  // Debug log
+    .catch(error => console.error('Error sending event:', error));
   }
 
   function trackPageView() {
+    console.log('Tracking pageview');  // Debug log
     sendEvent('pageview');
   }
 
-  // Track initial pageview
-  trackPageView();
+  // Track initial pageview with a small delay
+  setTimeout(trackPageView, 100);
 
   // Track pageviews on history changes
   var pushState = history.pushState;
@@ -38,4 +44,6 @@
 
   // Expose the sendEvent function globally
   window.sendAnalyticsEvent = sendEvent;
+
+  console.log('Analytics script loaded');  // Debug log
 })();

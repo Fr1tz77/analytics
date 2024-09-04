@@ -15,18 +15,28 @@ function Dashboard() {
   const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
   const [endDate, setEndDate] = useState(new Date());
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [startDate, endDate]);
 
   const fetchAnalyticsData = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
       const data = await response.json();
       setAnalyticsData(data);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +61,9 @@ function Dashboard() {
       }
     ],
   };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <main className={`min-h-screen p-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
