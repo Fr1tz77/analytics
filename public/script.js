@@ -32,7 +32,7 @@ function trackPageView() {
   sendEvent(eventData);
 }
 
-// Use DOMContentLoaded event instead of setTimeout
+// Use DOMContentLoaded event
 document.addEventListener('DOMContentLoaded', trackPageView);
 
 // Expose this function globally if you want to track other events
