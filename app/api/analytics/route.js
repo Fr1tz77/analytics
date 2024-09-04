@@ -10,22 +10,73 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const start = searchParams.get('start');
     const end = searchParams.get('end');
+    const metric = searchParams.get('metric') || 'pageviews';
 
-    console.log(`Fetching events from ${start} to ${end}`);
+    console.log(`Fetching ${metric} from ${start} to ${end}`);
 
     const client = await clientPromise;
     const db = client.db("analytics");
 
-    const events = await db.collection("events")
-      .find({
-        timestamp: { $gte: new Date(start), $lte: new Date(end) }
-      })
-      .limit(1000)  // Limit the number of results to prevent timeouts
-      .toArray();
+    const pipeline = [
+      {
+        $match: {
+          timestamp: { $gte: new Date(start), $lte: new Date(end) }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          pageviews: { $sum: { $cond: [{ $eq: ["$type", "pageview"] }, 1, 0] } },
+          uniqueVisitors: { $addToSet: "$userAgent" },
+          totalDuration: { $sum: { $cond: [{ $eq: ["$type", "duration"] }, "$duration", 0] } },
+          bounces: { $sum: { $cond: [{ $and: [{ $eq: ["$type", "pageview"] }, { $eq: ["$isNewVisit", true] }] }, 1, 0] } },
+        }
+      },
+      {
+        $project: {
+          date: "$_id",
+          pageviews: 1,
+          uniqueVisitors: { $size: "$uniqueVisitors" },
+          avgDuration: { $divide: ["$totalDuration", "$pageviews"] },
+          bounceRate: { $divide: ["$bounces", "$pageviews"] }
+        }
+      },
+      { $sort: { date: 1 } }
+    ];
 
-    console.log(`Found ${events.length} events`);
+    const events = await db.collection("events").aggregate(pipeline).toArray();
 
-    return NextResponse.json(events || []);
+    // Additional queries for top sources, pages, countries, and browsers
+    const topSources = await db.collection("events").aggregate([
+      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $group: { _id: "$referrer", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]).toArray();
+
+    const topPages = await db.collection("events").aggregate([
+      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $group: { _id: "$path", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]).toArray();
+
+    const countries = await db.collection("events").aggregate([
+      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $group: { _id: "$country", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]).toArray();
+
+    const browsers = await db.collection("events").aggregate([
+      { $match: { type: "pageview", timestamp: { $gte: new Date(start), $lte: new Date(end) } } },
+      { $group: { _id: "$browser", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]).toArray();
+
+    console.log(`Found ${events.length} data points`);
+
+    return NextResponse.json({ events, topSources, topPages, countries, browsers });
   } catch (error) {
     console.error('Error fetching analytics:', error);
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
@@ -41,10 +92,12 @@ export async function POST(req) {
     const body = await req.json();
     console.log('Received event:', body);
 
-    const result = await db.collection("events").insertOne({
-      ...body,
-      timestamp: new Date()
-    });
+    // Extract browser and country from user agent
+    const ua = require('ua-parser-js')(body.userAgent);
+    body.browser = ua.browser.name;
+    body.country = body.country || 'Unknown'; // You might want to use a geolocation service here
+
+    const result = await db.collection("events").insertOne(body);
 
     console.log('Inserted event with ID:', result.insertedId);
 

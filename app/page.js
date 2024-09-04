@@ -6,45 +6,46 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
-  const [analyticsData, setAnalyticsData] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState({ events: [], topSources: [], topPages: [], countries: [], browsers: [] });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMetric, setSelectedMetric] = useState('pageviews');
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, selectedMetric]);
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}`);
+      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
-      setAnalyticsData(data || []);
+      setAnalyticsData(data);
       setError(null);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setError('Failed to fetch analytics data. Please try again later.');
-      setAnalyticsData([]);
     } finally {
       setLoading(false);
     }
   };
 
   const chartData = {
-    labels: analyticsData.map(item => new Date(item.timestamp).toLocaleDateString()),
+    labels: analyticsData.events.map(item => item.date),
     datasets: [
       {
-        label: 'Page Views',
-        data: analyticsData.map(item => item.count || 1), // Default to 1 if count is not present
+        label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
+        data: analyticsData.events.map(item => item[selectedMetric]),
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
@@ -59,15 +60,12 @@ export default function Home() {
       },
       title: {
         display: true,
-        text: 'Page Views Over Time',
+        text: `${selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
       },
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          stepSize: 1
-        }
       }
     }
   };
@@ -96,6 +94,41 @@ export default function Home() {
       </div>
       {loading && <p className="text-gray-600">Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && (
+        <>
+          <div className="flex justify-between mb-4">
+            {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
+              <button
+                key={metric}
+                onClick={() => setSelectedMetric(metric)}
+                className={`px-4 py-2 rounded ${selectedMetric === metric ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              >
+                {metric.charAt(0).toUpperCase() + metric.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="w-full h-64 mb-8">
+            <Line options={options} data={chartData} />
+          </div>
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Top Sources</h2>
+              <ul>
+                {analyticsData.topSources.map(source => (
+                  <li key={source._id}>{source._id}: {source.count}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Top Pages</h2>
+              <ul>
+                {analyticsData.topPages.map(page => (
+                  <li key={page._id}>{page._id}: {page.count}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="mb-8">
       <div className="w-full h-64">
         <Line options={options} data={chartData} />
       </div>
