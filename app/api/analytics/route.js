@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
 
-export const runtime = 'edge' // This is the new way to set the runtime
+// Remove the Edge runtime specification
+// export const runtime = 'edge';
 
 export async function GET(req) {
   try {
