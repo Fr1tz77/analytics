@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
 
+export async function GET(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+
+    const client = await clientPromise;
+    const db = client.db("your_database_name");
+
+    // Query MongoDB for analytics data within the date range
+    const events = await db.collection("analytics_events").find({
+      timestamp: { $gte: new Date(start), $lte: new Date(end) }
+    }).toArray();
+
+    return NextResponse.json(events);
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
+  }
+}
+
 export async function POST(req) {
   try {
     const client = await clientPromise;
@@ -11,7 +32,10 @@ export async function POST(req) {
     console.log('Request body:', body);
 
     // Insert the event into MongoDB
-    await db.collection("analytics_events").insertOne(body);
+    await db.collection("analytics_events").insertOne({
+      ...body,
+      timestamp: new Date()
+    });
 
     return NextResponse.json({ message: 'Event recorded successfully' });
   } catch (error) {
