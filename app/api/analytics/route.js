@@ -18,12 +18,22 @@ export async function GET(req) {
     const totalDocs = await db.collection("events").countDocuments();
     console.log(`Total documents in collection: ${totalDocs}`);
 
+    // Log a sample document
+    const sampleDoc = await db.collection("events").findOne();
+    console.log('Sample document:', sampleDoc);
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    console.log('Start date:', startDate);
+    console.log('End date:', endDate);
+
     const pipeline = [
       {
         $match: {
           timestamp: { 
-            $gte: new Date(start), 
-            $lte: new Date(end) 
+            $gte: startDate, 
+            $lte: endDate 
           }
         }
       },
@@ -51,6 +61,7 @@ export async function GET(req) {
 
     // Log the number of events found
     console.log(`Found ${events.length} events for the selected date range`);
+    console.log('Events:', events);
 
     // Additional queries for top sources, pages, countries, and browsers
     const topSources = await db.collection("events").aggregate([

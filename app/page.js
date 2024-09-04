@@ -55,7 +55,18 @@ export default function Home() {
     datasets: [
       {
         label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
-        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
+        data: analyticsData.events?.map(item => {
+          if (selectedMetric === 'uniqueVisitors') {
+            return item.uniqueVisitors || 0;
+          } else if (selectedMetric === 'pageviews') {
+            return item.pageviews || 0;
+          } else if (selectedMetric === 'avgDuration') {
+            return item.avgDuration || 0;
+          } else if (selectedMetric === 'bounceRate') {
+            return item.bounceRate || 0;
+          }
+          return 0;
+        }) || [],
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
