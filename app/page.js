@@ -124,7 +124,6 @@ export default function Home() {
 
   const chartData = {
     labels: analyticsData.events?.map(item => {
-      // Check if the date is already formatted (e.g., "3 PM" or "Sep 5")
       if (typeof item.date === 'string' && (item.date.includes('AM') || item.date.includes('PM') || item.date.includes(' '))) {
         return item.date;
       }
@@ -140,7 +139,9 @@ export default function Home() {
         data: analyticsData.events?.map(item => 
           selectedMetric === 'avgDuration'
             ? Number((item[selectedMetric] / 60000).toFixed(2)) // Convert ms to minutes
-            : item[selectedMetric]
+            : selectedMetric === 'bounceRate'
+              ? Number(item[selectedMetric].toFixed(2)) // Round to 2 decimal places
+              : item[selectedMetric]
         ) || [],
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
@@ -179,7 +180,7 @@ export default function Home() {
             if (selectedMetric === 'avgDuration') {
               return value.toFixed(2) + 'm';
             } else if (selectedMetric === 'bounceRate') {
-              return value + '%';
+              return value.toFixed(2) + '%';
             }
             return value;
           }

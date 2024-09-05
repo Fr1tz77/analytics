@@ -65,7 +65,7 @@ export async function GET(req) {
       pageviews: event.pageviews,
       uniqueVisitors: event.uniqueVisitors.size,
       avgDuration: event.pageviews > 0 ? event.totalDuration / event.pageviews : 0, // Keep in milliseconds
-      bounceRate: event.pageviews > 0 ? (event.bounces / event.pageviews * 100).toFixed(2) : 0 // Calculate bounce rate as percentage
+      bounceRate: event.pageviews > 0 ? (event.bounces / event.pageviews * 100) : 0 // Calculate bounce rate as percentage, don't round here
     }));
 
     console.log('Processed events:', events);
