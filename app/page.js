@@ -9,6 +9,9 @@ import ProtectedPage from "../components/ProtectedPage";
 import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
 
+const D3Chart = dynamic(() => import('../components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
+const GeoHeatmap = dynamic(() => import('../components/GeoHeatmap').then(mod => mod.GeoHeatmap), { ssr: false });
+
 const DragDropContext = dynamic(() => import('react-beautiful-dnd').then(mod => mod.DragDropContext), { ssr: false });
 const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Droppable), { ssr: false });
 const Draggable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Draggable), { ssr: false });
@@ -92,10 +95,13 @@ export default function Home() {
     const handleKeyPress = (event) => {
       if (event.ctrlKey && event.key === 'd') {
         setDarkMode(!darkMode);
+        logAction('toggle_dark_mode', { darkMode: !darkMode });
       } else if (event.ctrlKey && event.key === 'i') {
         fileInputRef.current.click();
+      } else if (event.ctrlKey && event.key === 'r') {
+        fetchAnalyticsData();
+        logAction('refresh_data', {});
       }
-      // Add more shortcuts here
     };
 
     window.addEventListener('keydown', handleKeyPress);
@@ -422,9 +428,31 @@ export default function Home() {
     }
   };
 
+  const renderD3Chart = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+      <h2 className="text-xl font-semibold mb-4">D3 Visualization</h2>
+      <D3Chart data={analyticsData.topPages.map(page => ({ label: page._id, value: page.count }))} />
+    </div>
+  );
+
+  const renderGeoHeatmap = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+      <h2 className="text-xl font-semibold mb-4">Geographical Heatmap</h2>
+      <GeoHeatmap data={analyticsData.countries.map(country => ({ id: country._id, value: country.count }))} />
+    </div>
+  );
+
+  const logAction = async (action, details) => {
+    await fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, user: 'current_user', details }),
+    });
+  };
+
   return (
     <ProtectedPage>
-      <div className={`min-h-screen p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-gray-100 text-gray-900'}`}>
+      <div className={`min-h-screen p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-apple-gray text-gray-900'}`}>
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
             <h1 className="text-3xl font-bold mb-4 sm:mb-0">Analytics Dashboard</h1>
@@ -511,7 +539,7 @@ export default function Home() {
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="dashboard">
                 {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {dashboardLayout.map((widget, index) => (
                       <Draggable key={widget.id} draggableId={widget.id} index={index}>
                         {(provided) => (
@@ -519,6 +547,7 @@ export default function Home() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
+                            className="mb-4"
                           >
                             {renderWidget(widget)}
                           </div>
@@ -531,6 +560,8 @@ export default function Home() {
               </Droppable>
             </DragDropContext>
           )}
+          {renderD3Chart()}
+          {renderGeoHeatmap()}
         </div>
       </div>
     </ProtectedPage>
