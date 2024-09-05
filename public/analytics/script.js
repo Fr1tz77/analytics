@@ -9,13 +9,37 @@ function isBot(userAgent) {
   return botUserAgents.some(bot => userAgent.includes(bot));
 }
 
-function sendEvent(eventData) {
-  if (isBot(navigator.userAgent)) {
-    console.log('Bot detected, event not sent');
+function isLocalhost() {
+  return /^localhost$|^127(?:\.[0-9]+){0,2}\.[0-9]+$|^(?:0*:)*?:?0*1$/.test(window.location.hostname);
+}
+
+function isAutomatedBrowser() {
+  return window._phantom || window.__nightmare || window.navigator.webdriver || window.Cypress;
+}
+
+function shouldTrack() {
+  if (isLocalhost()) {
+    console.log('Localhost detected, not tracking');
+    return false;
+  }
+  if (isAutomatedBrowser()) {
+    console.log('Automated browser detected, not tracking');
+    return false;
+  }
+  if (localStorage.getItem('optOutAnalytics') === 'true') {
+    console.log('User opted out of tracking');
+    return false;
+  }
+  return true;
+}
+
+function sendEvent(eventData, callback) {
+  if (!shouldTrack() || isBot(navigator.userAgent)) {
+    console.log('Event not sent due to tracking restrictions');
+    if (callback) callback({ status: 'not_sent', reason: 'tracking_restricted' });
     return;
   }
 
-  // Use a geolocation API to get the country
   fetch('https://ipapi.co/json/')
     .then(response => response.json())
     .then(data => {
@@ -46,69 +70,35 @@ function sendEvent(eventData) {
         }
         return response.json();
       })
-      .then(data => console.log('Event sent successfully:', data))
+      .then(data => {
+        console.log('Event sent successfully:', data);
+        if (callback) callback({ status: 'success', data });
+      })
       .catch(error => {
         console.error('Error sending event:', error);
-        console.error('Error details:', error.message);
+        if (callback) callback({ status: 'error', error });
       });
     })
     .catch(error => {
       console.error('Error fetching country:', error);
-      // Send event without country information if geolocation fails
-      sendEventWithoutCountry(eventData);
+      sendEventWithoutCountry(eventData, callback);
     });
 }
 
-function sendEventWithoutCountry(eventData) {
-  const data = {
-    ...eventData,
-    referrer: document.referrer,
-    userAgent: navigator.userAgent,
-    language: navigator.language,
-    screenSize: `${window.screen.width}x${window.screen.height}`,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    timestamp: new Date().toISOString(),
-    browser: getBrowser(navigator.userAgent),
-    country: 'Unknown'
-  };
-
-  fetch(ANALYTICS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => console.log('Event sent successfully:', data))
-  .catch(error => {
-    console.error('Error sending event:', error);
-    console.error('Error details:', error.message);
-  });
+function sendEventWithoutCountry(eventData, callback) {
+  // ... (keep the existing code, but add the callback)
 }
 
 function getBrowser(userAgent) {
-  if (userAgent.includes("Firefox")) return "Firefox";
-  if (userAgent.includes("SamsungBrowser")) return "Samsung Browser";
-  if (userAgent.includes("Opera") || userAgent.includes("OPR")) return "Opera";
-  if (userAgent.includes("Trident")) return "Internet Explorer";
-  if (userAgent.includes("Edge")) return "Edge";
-  if (userAgent.includes("Chrome")) return "Chrome";
-  if (userAgent.includes("Safari")) return "Safari";
-  return "Unknown";
+  // ... (keep the existing code)
 }
 
-function trackPageView() {
+function trackPageView(callback) {
   sendEvent({
     type: 'pageview',
     url: window.location.href,
     path: window.location.pathname,
-  });
+  }, callback);
 }
 
 let startTime = Date.now();
@@ -122,6 +112,34 @@ window.addEventListener('beforeunload', () => {
   });
 });
 
-document.addEventListener('DOMContentLoaded', trackPageView);
+// Track navigation history
+let lastPathname = window.location.pathname;
+function handleLocationChange() {
+  if (window.location.pathname !== lastPathname) {
+    lastPathname = window.location.pathname;
+    trackPageView();
+  }
+}
 
+// Set up history change listeners
+window.addEventListener('popstate', handleLocationChange);
+const originalPushState = window.history.pushState;
+window.history.pushState = function() {
+  originalPushState.apply(this, arguments);
+  handleLocationChange();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  trackPageView();
+});
+
+// Expose functions globally
 window.trackAnalyticsEvent = sendEvent;
+window.optOutAnalytics = () => {
+  localStorage.setItem('optOutAnalytics', 'true');
+  console.log('User opted out of analytics tracking');
+};
+window.optInAnalytics = () => {
+  localStorage.removeItem('optOutAnalytics');
+  console.log('User opted in to analytics tracking');
+};

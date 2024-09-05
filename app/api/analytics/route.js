@@ -31,10 +31,10 @@ export async function GET(req) {
 
     console.log(`Found ${allEvents.length} total events`);
 
-    // Filter events within the date range
+    // Filter out localhost and development environments
     const filteredEvents = allEvents.filter(event => {
       const eventDate = new Date(event.timestamp);
-      return eventDate >= startDate && eventDate <= endDate;
+      return eventDate >= startDate && eventDate <= endDate && !event.url.includes('localhost') && !event.url.includes('.local');
     });
 
     console.log(`Found ${filteredEvents.length} events in date range`);
@@ -81,12 +81,16 @@ export async function GET(req) {
     console.log('Countries:', countries);
     console.log('Browsers:', browsers);
 
+    // Add a new field for navigation history
+    const navigationHistory = processNavigationHistory(filteredEvents);
+
     return NextResponse.json({ 
       events, 
       topSources, 
       topPages, 
       countries, 
-      browsers 
+      browsers,
+      navigationHistory
     })
   } catch (error) {
     console.error('Error fetching analytics:', error)
@@ -104,6 +108,19 @@ function processTopData(events, field, defaultValue = 'Unknown') {
   return Object.entries(data)
     .map(([_id, count]) => ({ _id, count }))
     .sort((a, b) => b.count - a.count);
+}
+
+function processNavigationHistory(events) {
+  const history = events
+    .filter(event => event.type === 'pageview')
+    .map(event => ({
+      timestamp: event.timestamp,
+      url: event.url,
+      path: event.path
+    }))
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  return history;
 }
 
 export async function POST(req) {
