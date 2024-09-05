@@ -36,6 +36,19 @@ function getCountryCode(countryName) {
   return countryCodes[countryName] || countryName.slice(0, 2).toUpperCase();
 }
 
+function formatChartLabel(dateString, interval) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    // If the date is invalid, return the original string
+    return dateString;
+  }
+  if (interval === 'hour') {
+    return date.toLocaleString('en-US', { hour: 'numeric', hour12: true });
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+}
+
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
@@ -45,6 +58,7 @@ export default function Home() {
   const [selectedMetric, setSelectedMetric] = useState('pageviews');
   const [timeInterval, setTimeInterval] = useState('day');
   const [darkMode, setDarkMode] = useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('last7days');
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -67,6 +81,7 @@ export default function Home() {
       }
       const data = await response.json();
       console.log('Fetched data:', data);
+      console.log('Sample event:', data.events[0]);  // Log a sample event
       setAnalyticsData(data);
       setError(null);
     } catch (error) {
@@ -77,12 +92,56 @@ export default function Home() {
     }
   };
 
+  const handleTimeframeChange = (timeframe) => {
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    switch (timeframe) {
+      case 'today':
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'yesterday':
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'last30days':
+        start.setDate(start.getDate() - 30);
+        break;
+      case 'last12months':
+        start.setMonth(start.getMonth() - 12);
+        break;
+      default: // last7days
+        start.setDate(start.getDate() - 7);
+    }
+
+    setStartDate(start);
+    setEndDate(end);
+    setSelectedTimeframe(timeframe);
+  };
+
   const chartData = {
-    labels: analyticsData.events?.map(item => item.date) || [],
+    labels: analyticsData.events?.map(item => {
+      // Check if the date is already formatted (e.g., "3 PM" or "Sep 5")
+      if (typeof item.date === 'string' && (item.date.includes('AM') || item.date.includes('PM') || item.date.includes(' '))) {
+        return item.date;
+      }
+      return formatChartLabel(item.date, timeInterval);
+    }) || [],
     datasets: [
       {
-        label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
-        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
+        label: selectedMetric === 'avgDuration' 
+          ? 'Average Duration (minutes)' 
+          : selectedMetric === 'bounceRate'
+            ? 'Bounce Rate (%)'
+            : selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
+        data: analyticsData.events?.map(item => 
+          selectedMetric === 'avgDuration'
+            ? Number((item[selectedMetric] / 60000).toFixed(2)) // Convert ms to minutes
+            : item[selectedMetric]
+        ) || [],
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
@@ -98,12 +157,33 @@ export default function Home() {
       },
       title: {
         display: true,
-        text: `${selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
+        text: `${selectedMetric === 'avgDuration' 
+          ? 'Average Duration (minutes)' 
+          : selectedMetric === 'bounceRate'
+            ? 'Bounce Rate (%)'
+            : selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
       },
     },
     scales: {
+      x: {
+        ticks: {
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 10
+        }
+      },
       y: {
         beginAtZero: true,
+        ticks: {
+          callback: function(value, index, values) {
+            if (selectedMetric === 'avgDuration') {
+              return value.toFixed(2) + 'm';
+            } else if (selectedMetric === 'bounceRate') {
+              return value + '%';
+            }
+            return value;
+          }
+        }
       }
     }
   };
@@ -134,7 +214,7 @@ export default function Home() {
               {darkMode ? <SunIcon className="h-6 w-6 text-yellow-400" /> : <MoonIcon className="h-6 w-6 text-gray-700" />}
             </button>
           </div>
-          <div className="mb-6 flex space-x-4">
+          <div className="mb-6 flex flex-wrap items-center space-x-4">
             <DatePicker
               selected={startDate}
               onChange={date => setStartDate(date)}
@@ -152,6 +232,17 @@ export default function Home() {
               minDate={startDate}
               className="p-2 border rounded dark:bg-gray-800 dark:text-white"
             />
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => handleTimeframeChange(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7days">Last 7 days</option>
+              <option value="last30days">Last 30 days</option>
+              <option value="last12months">Last 12 months</option>
+            </select>
             <select
               value={timeInterval}
               onChange={e => setTimeInterval(e.target.value)}
@@ -172,7 +263,9 @@ export default function Home() {
                     : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {metric.charAt(0).toUpperCase() + metric.slice(1)}
+                {metric === 'avgDuration' ? 'Avg Duration (m)' : 
+                 metric === 'bounceRate' ? 'Bounce Rate (%)' :
+                 metric.charAt(0).toUpperCase() + metric.slice(1)}
               </button>
             ))}
           </div>

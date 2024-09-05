@@ -49,11 +49,14 @@ export async function GET(req) {
         ? new Date(event.timestamp).toISOString().slice(0, 13) // YYYY-MM-DDTHH
         : new Date(event.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
       if (!acc[date]) {
-        acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0 };
+        acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0, bounces: 0 };
       }
       acc[date].pageviews++;
       acc[date].uniqueVisitors.add(event.userAgent);
       acc[date].totalDuration += event.duration || 0;
+      if (event.duration === 0) {
+        acc[date].bounces++;
+      }
       return acc;
     }, {});
 
@@ -61,8 +64,8 @@ export async function GET(req) {
       date: event.date,
       pageviews: event.pageviews,
       uniqueVisitors: event.uniqueVisitors.size,
-      avgDuration: event.pageviews > 0 ? event.totalDuration / event.pageviews : 0,
-      bounceRate: 0 // We don't have enough info to calculate this accurately
+      avgDuration: event.pageviews > 0 ? event.totalDuration / event.pageviews : 0, // Keep in milliseconds
+      bounceRate: event.pageviews > 0 ? (event.bounces / event.pageviews * 100).toFixed(2) : 0 // Calculate bounce rate as percentage
     }));
 
     console.log('Processed events:', events);
