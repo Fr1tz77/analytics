@@ -81,9 +81,6 @@ export async function GET(req) {
     console.log('Countries:', countries);
     console.log('Browsers:', browsers);
 
-    // Add a new field for navigation history
-    const navigationHistory = processNavigationHistory(filteredEvents);
-
     // Add cohort analysis
     const cohortData = await getCohortData(db, startDate, endDate);
 
@@ -97,7 +94,6 @@ export async function GET(req) {
       topPages, 
       countries, 
       browsers,
-      navigationHistory,
       cohortData,
       funnelData
     })
@@ -117,19 +113,6 @@ function processTopData(events, field, defaultValue = 'Unknown') {
   return Object.entries(data)
     .map(([_id, count]) => ({ _id, count }))
     .sort((a, b) => b.count - a.count);
-}
-
-function processNavigationHistory(events) {
-  const history = events
-    .filter(event => event.type === 'pageview')
-    .map(event => ({
-      timestamp: event.timestamp,
-      url: event.url,
-      path: event.path
-    }))
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-  return history;
 }
 
 async function getCohortData(db, startDate, endDate) {

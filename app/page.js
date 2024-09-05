@@ -57,7 +57,7 @@ function formatChartLabel(dateString, interval) {
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
-  const [analyticsData, setAnalyticsData] = useState({ events: [], topSources: [], topPages: [], countries: [], browsers: [], navigationHistory: [] });
+  const [analyticsData, setAnalyticsData] = useState({ events: [], topSources: [], topPages: [], countries: [], browsers: [] });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('pageviews');
@@ -72,7 +72,6 @@ export default function Home() {
     { id: 'topPages', title: 'Top Pages' },
     { id: 'countries', title: 'Visitors by Country' },
     { id: 'browsers', title: 'Browsers' },
-    { id: 'navigationHistory', title: 'Navigation History' },
     { id: 'cohortAnalysis', title: 'Cohort Analysis' },
     { id: 'funnelAnalysis', title: 'Funnel Analysis' },
   ]);
@@ -229,24 +228,6 @@ export default function Home() {
         <p className="text-red-500">{error}</p>
       ) : (
         content
-      )}
-    </div>
-  );
-
-  const renderNavigationHistory = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Navigation History</h2>
-      {analyticsData.navigationHistory && analyticsData.navigationHistory.length > 0 ? (
-        <ul className="space-y-2">
-          {analyticsData.navigationHistory.map((item, index) => (
-            <li key={index} className="flex justify-between items-center">
-              <span>{new Date(item.timestamp).toLocaleString()}</span>
-              <span>{item.path}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No navigation history available for the selected period.</p>
       )}
     </div>
   );
@@ -432,8 +413,6 @@ export default function Home() {
             <p className="text-gray-500 dark:text-gray-400">No browser data available for the selected period.</p>
           )
         );
-      case 'navigationHistory':
-        return renderNavigationHistory();
       case 'cohortAnalysis':
         return renderCohortAnalysis();
       case 'funnelAnalysis':
