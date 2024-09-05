@@ -14,18 +14,30 @@ export async function GET(req) {
     const client = await clientPromise
     const db = client.db("analytics")
 
+    // Log database connection
+    console.log("Connected to database:", db.databaseName);
+
     const startDate = new Date(start);
     const endDate = new Date(end);
 
     console.log('Start date:', startDate);
     console.log('End date:', endDate);
 
+    // Count total documents in the collection
+    const totalDocs = await db.collection("events").countDocuments();
+    console.log("Total documents in collection:", totalDocs);
+
     // Fetch all events within the date range
     const allEvents = await db.collection("events").find({
       timestamp: { $gte: startDate, $lte: endDate }
     }).toArray();
 
-    console.log(`Found ${allEvents.length} total events`);
+    console.log(`Found ${allEvents.length} total events in date range`);
+
+    // Log a sample event if available
+    if (allEvents.length > 0) {
+      console.log("Sample event:", allEvents[0]);
+    }
 
     // Process events
     const processedEvents = allEvents.reduce((acc, event) => {

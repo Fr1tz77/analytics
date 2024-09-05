@@ -40,7 +40,7 @@ export default function Home() {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
-      console.log('Fetched data:', data);  // Log the fetched data
+      console.log('Fetched data:', data);
       setAnalyticsData(data);
       setError(null);
     } catch (error) {
