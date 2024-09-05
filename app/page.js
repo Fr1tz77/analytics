@@ -1,14 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { useState, useEffect, useRef } from 'react';
+import { Line, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
-import { MoonIcon, SunIcon } from '@heroicons/react/24/solid';
+import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import dynamic from 'next/dynamic';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+const DragDropContext = dynamic(() => import('react-beautiful-dnd').then(mod => mod.DragDropContext), { ssr: false });
+const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Droppable), { ssr: false });
+const Draggable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Draggable), { ssr: false });
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 function getCountryFlagEmoji(countryCode) {
   const codePoints = countryCode
@@ -59,6 +64,18 @@ export default function Home() {
   const [timeInterval, setTimeInterval] = useState('day');
   const [darkMode, setDarkMode] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState('last7days');
+  const [importedData, setImportedData] = useState(null);
+  const fileInputRef = useRef(null);
+  const [dashboardLayout, setDashboardLayout] = useState([
+    { id: 'chart', title: 'Analytics Over Time' },
+    { id: 'topSources', title: 'Top Sources' },
+    { id: 'topPages', title: 'Top Pages' },
+    { id: 'countries', title: 'Visitors by Country' },
+    { id: 'browsers', title: 'Browsers' },
+    { id: 'navigationHistory', title: 'Navigation History' },
+    { id: 'cohortAnalysis', title: 'Cohort Analysis' },
+    { id: 'funnelAnalysis', title: 'Funnel Analysis' },
+  ]);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -70,6 +87,20 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [darkMode]);
+
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.ctrlKey && event.key === 'd') {
+        setDarkMode(!darkMode);
+      } else if (event.ctrlKey && event.key === 'i') {
+        fileInputRef.current.click();
+      }
+      // Add more shortcuts here
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, [darkMode]);
 
   const fetchAnalyticsData = async () => {
@@ -220,20 +251,229 @@ export default function Home() {
     </div>
   );
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target.result;
+        try {
+          const jsonData = JSON.parse(content);
+          setImportedData(jsonData);
+          // Process and merge imported data with existing analytics data
+          setAnalyticsData(prevData => ({
+            ...prevData,
+            events: [...prevData.events, ...jsonData.events],
+            // Merge other data as needed
+          }));
+        } catch (error) {
+          console.error('Error parsing imported data:', error);
+          setError('Failed to import data. Please ensure it\'s a valid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const renderCohortAnalysis = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8 overflow-x-auto">
+      <h2 className="text-xl font-semibold mb-4">Cohort Analysis</h2>
+      {analyticsData.cohortData && analyticsData.cohortData.length > 0 ? (
+        <table className="min-w-full">
+          <thead>
+            <tr>
+              <th className="px-4 py-2">Cohort</th>
+              {[...Array(30)].map((_, i) => (
+                <th key={i} className="px-4 py-2">Day {i}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {analyticsData.cohortData.map((cohort, index) => (
+              <tr key={index}>
+                <td className="border px-4 py-2">{cohort.cohort}</td>
+                {cohort.retentionData.map((day, dayIndex) => (
+                  <td key={dayIndex} className="border px-4 py-2">
+                    {((day.users / cohort.totalUsers) * 100).toFixed(2)}%
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No cohort data available for the selected period.</p>
+      )}
+    </div>
+  );
+
+  const renderFunnelAnalysis = () => {
+    const funnelData = analyticsData.funnelData;
+    if (!funnelData) return null;
+
+    const steps = Object.keys(funnelData);
+    const data = {
+      labels: steps,
+      datasets: [{
+        data: steps.map(step => funnelData[step]),
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Funnel Analysis</h2>
+        <div className="h-96">
+          <Bar data={data} options={options} />
+        </div>
+      </div>
+    );
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) {
+      return;
+    }
+
+    const items = Array.from(dashboardLayout);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setDashboardLayout(items);
+  };
+
+  const renderWidget = (widget) => {
+    switch (widget.id) {
+      case 'chart':
+        return renderSection(widget.title, 
+          <div className="w-full h-96 px-4">
+            {loading ? (
+              <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
+            ) : error ? (
+              <p className="text-red-500">{error}</p>
+            ) : analyticsData.events && analyticsData.events.length > 0 ? (
+              <Line options={options} data={chartData} />
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">No data available for the selected period.</p>
+            )}
+          </div>
+        );
+      case 'topSources':
+        return renderSection(widget.title, 
+          analyticsData.topSources && analyticsData.topSources.length > 0 ? (
+            <ul className="space-y-2">
+              {analyticsData.topSources.map(source => (
+                <li key={source._id} className="flex justify-between">
+                  <span>{source._id || 'Direct'}</span>
+                  <span className="font-semibold">{source.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No source data available for the selected period.</p>
+          )
+        );
+      case 'topPages':
+        return renderSection(widget.title, 
+          analyticsData.topPages && analyticsData.topPages.length > 0 ? (
+            <ul className="space-y-2">
+              {analyticsData.topPages.map(page => (
+                <li key={page._id} className="flex justify-between">
+                  <span>{page._id}</span>
+                  <span className="font-semibold">{page.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No page data available for the selected period.</p>
+          )
+        );
+      case 'countries':
+        return renderSection(widget.title, 
+          analyticsData.countries && analyticsData.countries.length > 0 ? (
+            <ul className="space-y-2">
+              {analyticsData.countries.map(country => (
+                <li key={country._id} className="flex justify-between items-center">
+                  <span>
+                    {getCountryFlagEmoji(getCountryCode(country._id))} {country._id}
+                  </span>
+                  <span className="font-semibold">{country.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No country data available for the selected period.</p>
+          )
+        );
+      case 'browsers':
+        return renderSection(widget.title, 
+          analyticsData.browsers && analyticsData.browsers.length > 0 ? (
+            <ul className="space-y-2">
+              {analyticsData.browsers.map(browser => (
+                <li key={browser._id} className="flex justify-between">
+                  <span>{browser._id}</span>
+                  <span className="font-semibold">{browser.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No browser data available for the selected period.</p>
+          )
+        );
+      case 'navigationHistory':
+        return renderNavigationHistory();
+      case 'cohortAnalysis':
+        return renderCohortAnalysis();
+      case 'funnelAnalysis':
+        return renderFunnelAnalysis();
+      default:
+        return null;
+    }
+  };
+
   return (
     <ProtectedPage>
       <div className={`min-h-screen p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-gray-100 text-gray-900'}`}>
         <div className="container mx-auto max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
-            >
-              {darkMode ? <SunIcon className="h-6 w-6 text-yellow-400" /> : <MoonIcon className="h-6 w-6 text-gray-700" />}
-            </button>
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold mb-4 sm:mb-0">Analytics Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? <SunIcon className="h-6 w-6 text-yellow-400" /> : <MoonIcon className="h-6 w-6 text-gray-700" />}
+              </button>
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+                aria-label="Import data"
+              >
+                <ArrowUpTrayIcon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".json"
+                className="hidden"
+              />
+            </div>
           </div>
-          <div className="mb-6 flex flex-wrap items-center space-x-4">
+          <div className="mb-6 flex flex-wrap items-center space-x-2 space-y-2">
             <DatePicker
               selected={startDate}
               onChange={date => setStartDate(date)}
@@ -288,80 +528,30 @@ export default function Home() {
               </button>
             ))}
           </div>
-          {renderSection("Analytics Over Time", 
-            <div className="w-full h-96 px-4">
-              {loading ? (
-                <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : analyticsData.events && analyticsData.events.length > 0 ? (
-                <Line options={options} data={chartData} />
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">No data available for the selected period.</p>
-              )}
-            </div>
+          {typeof window !== 'undefined' && (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="dashboard">
+                {(provided) => (
+                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                    {dashboardLayout.map((widget, index) => (
+                      <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                          >
+                            {renderWidget(widget)}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {renderSection("Top Sources", 
-              analyticsData.topSources && analyticsData.topSources.length > 0 ? (
-                <ul className="space-y-2">
-                  {analyticsData.topSources.map(source => (
-                    <li key={source._id} className="flex justify-between">
-                      <span>{source._id || 'Direct'}</span>
-                      <span className="font-semibold">{source.count}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">No source data available for the selected period.</p>
-              )
-            )}
-            {renderSection("Top Pages", 
-              analyticsData.topPages && analyticsData.topPages.length > 0 ? (
-                <ul className="space-y-2">
-                  {analyticsData.topPages.map(page => (
-                    <li key={page._id} className="flex justify-between">
-                      <span>{page._id}</span>
-                      <span className="font-semibold">{page.count}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">No page data available for the selected period.</p>
-              )
-            )}
-          </div>
-          {renderSection("Visitors by Country", 
-            analyticsData.countries && analyticsData.countries.length > 0 ? (
-              <ul className="space-y-2">
-                {analyticsData.countries.map(country => (
-                  <li key={country._id} className="flex justify-between items-center">
-                    <span>
-                      {getCountryFlagEmoji(getCountryCode(country._id))} {country._id}
-                    </span>
-                    <span className="font-semibold">{country.count}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">No country data available for the selected period.</p>
-            )
-          )}
-          {renderSection("Browsers", 
-            analyticsData.browsers && analyticsData.browsers.length > 0 ? (
-              <ul className="space-y-2">
-                {analyticsData.browsers.map(browser => (
-                  <li key={browser._id} className="flex justify-between">
-                    <span>{browser._id}</span>
-                    <span className="font-semibold">{browser.count}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">No browser data available for the selected period.</p>
-            )
-          )}
-          {renderNavigationHistory()}
         </div>
       </div>
     </ProtectedPage>

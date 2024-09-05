@@ -84,13 +84,22 @@ export async function GET(req) {
     // Add a new field for navigation history
     const navigationHistory = processNavigationHistory(filteredEvents);
 
+    // Add cohort analysis
+    const cohortData = await getCohortData(db, startDate, endDate);
+
+    // Add funnel analysis
+    const funnelSteps = ['homepage', 'product', 'cart', 'checkout', 'purchase'];
+    const funnelData = await getFunnelData(db, funnelSteps, startDate, endDate);
+
     return NextResponse.json({ 
       events, 
       topSources, 
       topPages, 
       countries, 
       browsers,
-      navigationHistory
+      navigationHistory,
+      cohortData,
+      funnelData
     })
   } catch (error) {
     console.error('Error fetching analytics:', error)
@@ -121,6 +130,81 @@ function processNavigationHistory(events) {
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   return history;
+}
+
+async function getCohortData(db, startDate, endDate) {
+  const pipeline = [
+    { $match: { timestamp: { $gte: startDate, $lte: endDate }, type: 'pageview' } },
+    { $group: {
+      _id: {
+        cohort: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+        user: "$userAgent"
+      },
+      firstVisit: { $min: "$timestamp" }
+    }},
+    { $group: {
+      _id: "$_id.cohort",
+      users: { $addToSet: "$_id.user" },
+      retentionData: { 
+        $push: { 
+          user: "$_id.user", 
+          days: { $divide: [{ $subtract: ["$firstVisit", { $dateFromString: { dateString: "$_id.cohort" } }] }, 86400000] }
+        }
+      }
+    }},
+    { $project: {
+      cohort: "$_id",
+      totalUsers: { $size: "$users" },
+      retentionData: {
+        $map: {
+          input: { $range: [0, 30] },
+          as: "day",
+          in: {
+            day: "$$day",
+            users: {
+              $size: {
+                $filter: {
+                  input: "$retentionData",
+                  cond: { $lte: ["$$this.days", "$$day"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    }},
+    { $sort: { cohort: 1 } }
+  ];
+
+  return await db.collection("events").aggregate(pipeline).toArray();
+}
+
+async function getFunnelData(db, steps, startDate, endDate) {
+  const pipeline = steps.map((step, index) => ({
+    $group: {
+      _id: null,
+      [`${step}Count`]: {
+        $sum: {
+          $cond: [
+            { $and: [
+              { $eq: ["$type", "pageview"] },
+              { $eq: ["$path", `/${step}`] },
+              { $gte: ["$timestamp", startDate] },
+              { $lte: ["$timestamp", endDate] }
+            ]},
+            1,
+            0
+          ]
+        }
+      }
+    }
+  }));
+
+  const result = await db.collection("events").aggregate(pipeline).toArray();
+  return steps.reduce((acc, step, index) => {
+    acc[step] = result[0][`${step}Count`];
+    return acc;
+  }, {});
 }
 
 export async function POST(req) {
