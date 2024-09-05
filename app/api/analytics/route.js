@@ -8,8 +8,9 @@ export async function GET(req) {
     const start = searchParams.get('start')
     const end = searchParams.get('end')
     const metric = searchParams.get('metric') || 'pageviews'
+    const interval = searchParams.get('interval') || 'day'
 
-    console.log(`Fetching ${metric} from ${start} to ${end}`);
+    console.log(`Fetching ${metric} from ${start} to ${end} with interval ${interval}`);
 
     const client = await clientPromise
     const db = client.db("analytics")
@@ -44,7 +45,9 @@ export async function GET(req) {
 
     // Process events
     const processedEvents = filteredEvents.reduce((acc, event) => {
-      const date = new Date(event.timestamp).toISOString().split('T')[0];
+      const date = interval === 'hour'
+        ? new Date(event.timestamp).toISOString().slice(0, 13) // YYYY-MM-DDTHH
+        : new Date(event.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
       if (!acc[date]) {
         acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0 };
       }

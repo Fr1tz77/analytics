@@ -10,7 +10,6 @@ import { MoonIcon, SunIcon } from '@heroicons/react/24/solid';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Add this function to get country flag emojis
 function getCountryFlagEmoji(countryCode) {
   const codePoints = countryCode
     .toUpperCase()
@@ -19,7 +18,6 @@ function getCountryFlagEmoji(countryCode) {
   return String.fromCodePoint(...codePoints);
 }
 
-// Add this function to get country code from country name
 function getCountryCode(countryName) {
   const countryCodes = {
     'United States': 'US',
@@ -32,9 +30,10 @@ function getCountryCode(countryName) {
     'China': 'CN',
     'India': 'IN',
     'Brazil': 'BR',
-    // Add more country mappings as needed
+    'Unknown': 'UN',
+    // Add more mappings as needed
   };
-  return countryCodes[countryName] || 'UN'; // 'UN' for unknown
+  return countryCodes[countryName] || countryName.slice(0, 2).toUpperCase();
 }
 
 export default function Home() {
@@ -44,11 +43,12 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('pageviews');
+  const [timeInterval, setTimeInterval] = useState('day');
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [startDate, endDate, selectedMetric]);
+  }, [startDate, endDate, selectedMetric, timeInterval]);
 
   useEffect(() => {
     if (darkMode) {
@@ -61,7 +61,7 @@ export default function Home() {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}`);
+      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}&interval=${timeInterval}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
@@ -152,6 +152,14 @@ export default function Home() {
               minDate={startDate}
               className="p-2 border rounded dark:bg-gray-800 dark:text-white"
             />
+            <select
+              value={timeInterval}
+              onChange={e => setTimeInterval(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            >
+              <option value="day">Day</option>
+              <option value="hour">Hour</option>
+            </select>
           </div>
           <div className="flex justify-between mb-6">
             {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
