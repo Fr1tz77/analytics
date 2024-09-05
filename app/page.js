@@ -40,6 +40,7 @@ export default function Home() {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
+      console.log('Fetched data:', data);  // Log the fetched data
       setAnalyticsData(data);
       setError(null);
     } catch (error) {
@@ -51,22 +52,11 @@ export default function Home() {
   };
 
   const chartData = {
-    labels: analyticsData.events?.map(item => new Date(item.date).toLocaleDateString()) || [],
+    labels: analyticsData.events?.map(item => item.date) || [],
     datasets: [
       {
         label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
-        data: analyticsData.events?.map(item => {
-          if (selectedMetric === 'uniqueVisitors') {
-            return item.uniqueVisitors || 0;
-          } else if (selectedMetric === 'pageviews') {
-            return item.pageviews || 0;
-          } else if (selectedMetric === 'avgDuration') {
-            return item.avgDuration || 0;
-          } else if (selectedMetric === 'bounceRate') {
-            return item.bounceRate || 0;
-          }
-          return 0;
-        }) || [],
+        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
@@ -158,8 +148,10 @@ export default function Home() {
                 <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
               ) : error ? (
                 <p className="text-red-500">{error}</p>
-              ) : (
+              ) : analyticsData.events && analyticsData.events.length > 0 ? (
                 <Line options={options} data={chartData} />
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">No data available for the selected period.</p>
               )}
             </div>
           )}

@@ -8,7 +8,9 @@ function sendEvent(eventData) {
     language: navigator.language,
     screenSize: `${window.screen.width}x${window.screen.height}`,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    browser: getBrowser(navigator.userAgent),
+    country: 'Unknown' // You might want to use a geolocation service here
   };
 
   console.log('Sending event data:', data);
@@ -31,6 +33,17 @@ function sendEvent(eventData) {
     console.error('Error sending event:', error);
     console.error('Error details:', error.message);
   });
+}
+
+function getBrowser(userAgent) {
+  if (userAgent.includes("Firefox")) return "Firefox";
+  if (userAgent.includes("SamsungBrowser")) return "Samsung Browser";
+  if (userAgent.includes("Opera") || userAgent.includes("OPR")) return "Opera";
+  if (userAgent.includes("Trident")) return "Internet Explorer";
+  if (userAgent.includes("Edge")) return "Edge";
+  if (userAgent.includes("Chrome")) return "Chrome";
+  if (userAgent.includes("Safari")) return "Safari";
+  return "Unknown";
 }
 
 function trackPageView() {
