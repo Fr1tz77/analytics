@@ -11,6 +11,16 @@ import { MoonIcon, SunIcon } from '@heroicons/react/24/solid';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+// Add this function to normalize country names
+function normalizeCountryName(name) {
+  const normalizations = {
+    "United States": "United States of America",
+    "UK": "United Kingdom",
+    // Add more normalizations as needed
+  };
+  return normalizations[name] || name;
+}
+
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
@@ -192,7 +202,9 @@ export default function Home() {
                   <Geographies geography="/world-110m.json">
                     {({ geographies }) =>
                       geographies.map(geo => {
-                        const country = analyticsData.countries.find(c => c._id === geo.properties.NAME);
+                        const country = analyticsData.countries.find(c => 
+                          normalizeCountryName(c._id) === geo.properties.NAME
+                        );
                         return (
                           <Geography
                             key={geo.rsmKey}
