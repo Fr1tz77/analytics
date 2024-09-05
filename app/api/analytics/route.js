@@ -97,8 +97,7 @@ function processTopData(events, field, defaultValue = 'Unknown') {
 
   return Object.entries(data)
     .map(([_id, count]) => ({ _id, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, field === 'country' ? undefined : 5); // Don't limit countries
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function POST(req) {

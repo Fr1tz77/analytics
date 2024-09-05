@@ -6,19 +6,35 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { MoonIcon, SunIcon } from '@heroicons/react/24/solid';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Add this function to normalize country names
-function normalizeCountryName(name) {
-  const normalizations = {
-    "United States": "United States of America",
-    "UK": "United Kingdom",
-    // Add more normalizations as needed
+// Add this function to get country flag emojis
+function getCountryFlagEmoji(countryCode) {
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map(char => 127397 + char.charCodeAt());
+  return String.fromCodePoint(...codePoints);
+}
+
+// Add this function to get country code from country name
+function getCountryCode(countryName) {
+  const countryCodes = {
+    'United States': 'US',
+    'United Kingdom': 'GB',
+    'Germany': 'DE',
+    'France': 'FR',
+    'Canada': 'CA',
+    'Australia': 'AU',
+    'Japan': 'JP',
+    'China': 'CN',
+    'India': 'IN',
+    'Brazil': 'BR',
+    // Add more country mappings as needed
   };
-  return normalizations[name] || name;
+  return countryCodes[countryName] || 'UN'; // 'UN' for unknown
 }
 
 export default function Home() {
@@ -197,27 +213,16 @@ export default function Home() {
           </div>
           {renderSection("Visitors by Country", 
             analyticsData.countries && analyticsData.countries.length > 0 ? (
-              <div className="h-96">
-                <ComposableMap>
-                  <Geographies geography="/world-110m.json">
-                    {({ geographies }) =>
-                      geographies.map(geo => {
-                        const country = analyticsData.countries.find(c => 
-                          normalizeCountryName(c._id) === geo.properties.NAME
-                        );
-                        return (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            fill={country ? `rgba(59, 130, 246, ${country.count / Math.max(...analyticsData.countries.map(c => c.count))})` : "#F5F4F6"}
-                            stroke="#D6D6DA"
-                          />
-                        );
-                      })
-                    }
-                  </Geographies>
-                </ComposableMap>
-              </div>
+              <ul className="space-y-2">
+                {analyticsData.countries.map(country => (
+                  <li key={country._id} className="flex justify-between items-center">
+                    <span>
+                      {getCountryFlagEmoji(getCountryCode(country._id))} {country._id}
+                    </span>
+                    <span className="font-semibold">{country.count}</span>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">No country data available for the selected period.</p>
             )
