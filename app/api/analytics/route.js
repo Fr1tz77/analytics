@@ -14,7 +14,6 @@ export async function GET(req) {
     const client = await clientPromise
     const db = client.db("analytics")
 
-    // Log database connection
     console.log("Connected to database:", db.databaseName);
 
     const startDate = new Date(start);
@@ -23,24 +22,28 @@ export async function GET(req) {
     console.log('Start date:', startDate);
     console.log('End date:', endDate);
 
-    // Count total documents in the collection
     const totalDocs = await db.collection("events").countDocuments();
     console.log("Total documents in collection:", totalDocs);
 
-    // Fetch all events within the date range
-    const allEvents = await db.collection("events").find({
-      timestamp: { $gte: startDate, $lte: endDate }
-    }).toArray();
+    // Fetch all events
+    const allEvents = await db.collection("events").find().toArray();
 
-    console.log(`Found ${allEvents.length} total events in date range`);
+    console.log(`Found ${allEvents.length} total events`);
 
-    // Log a sample event if available
-    if (allEvents.length > 0) {
-      console.log("Sample event:", allEvents[0]);
+    // Filter events within the date range
+    const filteredEvents = allEvents.filter(event => {
+      const eventDate = new Date(event.timestamp);
+      return eventDate >= startDate && eventDate <= endDate;
+    });
+
+    console.log(`Found ${filteredEvents.length} events in date range`);
+
+    if (filteredEvents.length > 0) {
+      console.log("Sample event:", filteredEvents[0]);
     }
 
     // Process events
-    const processedEvents = allEvents.reduce((acc, event) => {
+    const processedEvents = filteredEvents.reduce((acc, event) => {
       const date = new Date(event.timestamp).toISOString().split('T')[0];
       if (!acc[date]) {
         acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0 };
@@ -61,66 +64,41 @@ export async function GET(req) {
 
     console.log('Processed events:', events);
 
-    // Process top sources
-    const topSources = allEvents.reduce((acc, event) => {
-      const source = event.referrer || 'Direct';
-      acc[source] = (acc[source] || 0) + 1;
-      return acc;
-    }, {});
+    // Process top sources, pages, countries, and browsers
+    const topSources = processTopData(filteredEvents, 'referrer', 'Direct');
+    const topPages = processTopData(filteredEvents, 'path');
+    const countries = processTopData(filteredEvents, 'country');
+    const browsers = processTopData(filteredEvents, 'browser');
 
-    const topSourcesArray = Object.entries(topSources)
-      .map(([_id, count]) => ({ _id, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // Process top pages
-    const topPages = allEvents.reduce((acc, event) => {
-      acc[event.path] = (acc[event.path] || 0) + 1;
-      return acc;
-    }, {});
-
-    const topPagesArray = Object.entries(topPages)
-      .map(([_id, count]) => ({ _id, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // Process countries
-    const countries = allEvents.reduce((acc, event) => {
-      acc[event.country] = (acc[event.country] || 0) + 1;
-      return acc;
-    }, {});
-
-    const countriesArray = Object.entries(countries)
-      .map(([_id, count]) => ({ _id, count }))
-      .sort((a, b) => b.count - a.count);
-
-    // Process browsers
-    const browsers = allEvents.reduce((acc, event) => {
-      acc[event.browser] = (acc[event.browser] || 0) + 1;
-      return acc;
-    }, {});
-
-    const browsersArray = Object.entries(browsers)
-      .map(([_id, count]) => ({ _id, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    console.log('Top Sources:', topSourcesArray);
-    console.log('Top Pages:', topPagesArray);
-    console.log('Countries:', countriesArray);
-    console.log('Browsers:', browsersArray);
+    console.log('Top Sources:', topSources);
+    console.log('Top Pages:', topPages);
+    console.log('Countries:', countries);
+    console.log('Browsers:', browsers);
 
     return NextResponse.json({ 
       events, 
-      topSources: topSourcesArray, 
-      topPages: topPagesArray, 
-      countries: countriesArray, 
-      browsers: browsersArray 
+      topSources, 
+      topPages, 
+      countries, 
+      browsers 
     })
   } catch (error) {
     console.error('Error fetching analytics:', error)
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
   }
+}
+
+function processTopData(events, field, defaultValue = 'Unknown') {
+  const data = events.reduce((acc, event) => {
+    const value = event[field] || defaultValue;
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(data)
+    .map(([_id, count]) => ({ _id, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 }
 
 export async function POST(req) {
