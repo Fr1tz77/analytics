@@ -139,13 +139,10 @@ export default function Home() {
     }
   };
 
-  const handleDateChange = (start, end) => {
+  const handleDateChange = (start, end, interval) => {
     setStartDate(start);
     setEndDate(end);
-  };
-
-  const handleIntervalChange = (newInterval) => {
-    setTimeInterval(newInterval);
+    setTimeInterval(interval);
   };
 
   const chartData = {
@@ -438,7 +435,7 @@ export default function Home() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Geographical Distribution</h2>
         <div style={{ height: '400px', width: '100%' }}>
-          <WorldMap data={mapData} darkMode={darkMode} />
+          {typeof window !== 'undefined' && <WorldMap data={mapData} darkMode={darkMode} />}
         </div>
       </div>
     );
@@ -500,26 +497,27 @@ export default function Home() {
               />
             </div>
           </div>
-          <DateRangeSelector 
-            onDateChange={handleDateChange}
-            onIntervalChange={handleIntervalChange}
-          />
-          <div className="flex justify-between mb-6">
-            {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
-              <button
-                key={metric}
-                onClick={() => setSelectedMetric(metric)}
-                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  selectedMetric === metric 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {metric === 'avgDuration' ? 'Avg Duration (m)' : 
-                 metric === 'bounceRate' ? 'Bounce Rate (%)' :
-                 metric.charAt(0).toUpperCase() + metric.slice(1)}
-              </button>
-            ))}
+          <div className="mb-8">
+            <DateRangeSelector onDateChange={handleDateChange} />
+          </div>
+          <div className="mb-8">
+            <div className="flex justify-between">
+              {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
+                <button
+                  key={metric}
+                  onClick={() => setSelectedMetric(metric)}
+                  className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                    selectedMetric === metric 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {metric === 'avgDuration' ? 'Avg Duration (m)' : 
+                   metric === 'bounceRate' ? 'Bounce Rate (%)' :
+                   metric.charAt(0).toUpperCase() + metric.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
           {typeof window !== 'undefined' && (
             <DragDropContext onDragEnd={onDragEnd}>

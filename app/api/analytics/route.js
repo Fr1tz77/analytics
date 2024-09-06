@@ -45,9 +45,29 @@ export async function GET(req) {
 
     // Process events
     const processedEvents = filteredEvents.reduce((acc, event) => {
-      const date = interval === 'hour'
-        ? new Date(event.timestamp).toISOString().slice(0, 13) // YYYY-MM-DDTHH
-        : new Date(event.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
+      let date;
+      switch (interval) {
+        case 'hour':
+          date = new Date(event.timestamp).toISOString().slice(0, 13); // YYYY-MM-DDTHH
+          break;
+        case '3hour':
+          date = new Date(event.timestamp);
+          date.setHours(Math.floor(date.getHours() / 3) * 3, 0, 0, 0);
+          date = date.toISOString().slice(0, 13);
+          break;
+        case '12hour':
+          date = new Date(event.timestamp);
+          date.setHours(Math.floor(date.getHours() / 12) * 12, 0, 0, 0);
+          date = date.toISOString().slice(0, 13);
+          break;
+        case 'week':
+          date = new Date(event.timestamp);
+          date.setDate(date.getDate() - date.getDay());
+          date = date.toISOString().split('T')[0];
+          break;
+        default: // 'day'
+          date = new Date(event.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
+      }
       if (!acc[date]) {
         acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0, bounces: 0 };
       }

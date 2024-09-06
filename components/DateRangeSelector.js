@@ -11,19 +11,28 @@ const presets = [
   { label: 'Last month', days: 'lastMonth' },
 ];
 
-const DateRangeSelector = ({ onDateChange, onIntervalChange }) => {
+const DateRangeSelector = ({ onDateChange }) => {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
   const [selectedPreset, setSelectedPreset] = useState('');
-  const [interval, setInterval] = useState('day');
 
   useEffect(() => {
-    onDateChange(startDate, endDate);
-  }, [startDate, endDate]);
+    const interval = determineInterval(startDate, endDate);
+    onDateChange(startDate, endDate, interval);
+  }, [startDate, endDate, onDateChange]);
+
+  const determineInterval = (start, end) => {
+    const diffHours = (end - start) / (1000 * 60 * 60);
+    if (diffHours <= 24) return 'hour';
+    if (diffHours <= 72) return '3hour';
+    if (diffHours <= 168) return '12hour';
+    if (diffHours <= 720) return 'day';
+    return 'week';
+  };
 
   const handlePresetChange = (preset) => {
     setSelectedPreset(preset.label);
-    const end = new Date();
+    let end = new Date();
     let start = new Date();
 
     if (preset.days === 'month') {
@@ -37,11 +46,6 @@ const DateRangeSelector = ({ onDateChange, onIntervalChange }) => {
 
     setStartDate(start);
     setEndDate(end);
-  };
-
-  const handleIntervalChange = (newInterval) => {
-    setInterval(newInterval);
-    onIntervalChange(newInterval);
   };
 
   return (
@@ -80,28 +84,6 @@ const DateRangeSelector = ({ onDateChange, onIntervalChange }) => {
             {preset.label}
           </button>
         ))}
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => handleIntervalChange('hour')}
-          className={`px-3 py-1 rounded-full text-sm ${
-            interval === 'hour'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Hourly
-        </button>
-        <button
-          onClick={() => handleIntervalChange('day')}
-          className={`px-3 py-1 rounded-full text-sm ${
-            interval === 'day'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Daily
-        </button>
       </div>
     </div>
   );
