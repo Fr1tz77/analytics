@@ -60,7 +60,15 @@ function formatChartLabel(dateString, interval) {
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
-  const [analyticsData, setAnalyticsData] = useState({ events: [], topSources: [], topPages: [], countries: [], browsers: [] });
+  const [analyticsData, setAnalyticsData] = useState({
+    events: [],
+    topSources: [],
+    topPages: [],
+    countries: [],
+    browsers: [],
+    cohortData: [],
+    funnelData: {}
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('pageviews');
@@ -117,7 +125,9 @@ export default function Home() {
       }
       const data = await response.json();
       console.log('Fetched data:', data);
-      console.log('Sample event:', data.events[0]);  // Log a sample event
+      if (data.events && data.events.length > 0) {
+        console.log('Sample event:', data.events[0]);
+      }
       setAnalyticsData(data);
       setError(null);
     } catch (error) {

@@ -13,8 +13,10 @@ const countryNameMapping = {
   // Add more mappings as needed
 };
 
-export function GeoHeatmap({ data }) {
-  const maxValue = data && data.length > 0 ? Math.max(...data.map(d => d.value)) : 1;
+export function GeoHeatmap({ data = [] }) {  // Provide a default empty array
+  console.log("GeoHeatmap received data:", data);  // Add this log
+
+  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.value)) : 1;
 
   const colorScale = scaleLinear()
     .domain([0, maxValue])
