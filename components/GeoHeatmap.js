@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { scaleLinear } from "d3-scale";
-
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json";
+import { geoData } from './geoData'; // We'll create this file next
 
 const countryNameMapping = {
   "United States": "United States of America",
@@ -16,17 +14,8 @@ const countryNameMapping = {
 };
 
 export function GeoHeatmap({ data }) {
-  const [geoData, setGeoData] = useState(null);
-
-  useEffect(() => {
-    fetch(geoUrl)
-      .then(response => response.json())
-      .then(setGeoData)
-      .catch(error => console.error('Error loading geography data:', error));
-  }, []);
-
-  if (!data || data.length === 0 || !geoData) {
-    return <div>Loading heatmap data...</div>;
+  if (!data || data.length === 0) {
+    return <div>No heatmap data available</div>;
   }
 
   const maxValue = Math.max(...data.map(d => d.value));

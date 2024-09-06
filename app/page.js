@@ -436,20 +436,18 @@ export default function Home() {
   );
 
   const renderGeoHeatmap = () => {
+    console.log("Countries data:", analyticsData.countries);
     const heatmapData = analyticsData.countries ? analyticsData.countries.map(country => ({
       id: country._id,
       value: country.count
     })) : [];
+    console.log("Heatmap data:", heatmapData);
 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Geographical Heatmap</h2>
         <div style={{ width: "100%", height: "400px" }}>
-          {heatmapData.length > 0 ? (
-            <GeoHeatmap data={heatmapData} />
-          ) : (
-            <p>No country data available</p>
-          )}
+          <GeoHeatmap data={heatmapData} />
         </div>
       </div>
     );
