@@ -14,23 +14,24 @@ const countryNameMapping = {
 };
 
 export function GeoHeatmap({ data }) {
-  if (!data || data.length === 0) {
-    return <div>No heatmap data available</div>;
-  }
-
-  const maxValue = Math.max(...data.map(d => d.value));
+  const maxValue = data && data.length > 0 ? Math.max(...data.map(d => d.value)) : 1;
 
   const colorScale = scaleLinear()
     .domain([0, maxValue])
     .range(["#ffedea", "#ff5233"]);
 
   return (
-    <ComposableMap projectionConfig={{ scale: 150 }}>
+    <ComposableMap
+      projectionConfig={{
+        scale: 147,
+        center: [0, 30] // Adjust these values to center the map as needed
+      }}
+    >
       <Geographies geography={geoData}>
         {({ geographies }) =>
           geographies.map((geo) => {
             const geoName = geo.properties.name;
-            const d = data.find((s) => 
+            const d = data && data.find((s) => 
               s.id.toLowerCase() === geoName.toLowerCase() || 
               s.id.toLowerCase() === countryNameMapping[geoName]?.toLowerCase() || 
               countryNameMapping[s.id]?.toLowerCase() === geoName.toLowerCase()
