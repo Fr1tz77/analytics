@@ -436,12 +436,10 @@ export default function Home() {
   );
 
   const renderGeoHeatmap = () => {
-    console.log("Countries data:", analyticsData.countries);
     const heatmapData = analyticsData.countries ? analyticsData.countries.map(country => ({
       id: country._id,
       value: country.count
     })) : [];
-    console.log("Heatmap data:", heatmapData);
 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">

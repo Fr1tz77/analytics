@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { scaleLinear } from "d3-scale";
 
@@ -15,15 +16,20 @@ const countryNameMapping = {
 };
 
 export function GeoHeatmap({ data }) {
-  console.log("GeoHeatmap data:", data);
+  const [geoData, setGeoData] = useState(null);
 
-  if (!data || data.length === 0) {
-    console.warn("No data provided to GeoHeatmap");
-    return <div>No data available for the heatmap</div>;
+  useEffect(() => {
+    fetch(geoUrl)
+      .then(response => response.json())
+      .then(setGeoData)
+      .catch(error => console.error('Error loading geography data:', error));
+  }, []);
+
+  if (!data || data.length === 0 || !geoData) {
+    return <div>Loading heatmap data...</div>;
   }
 
   const maxValue = Math.max(...data.map(d => d.value));
-  console.log("Max value:", maxValue);
 
   const colorScale = scaleLinear()
     .domain([0, maxValue])
@@ -31,7 +37,7 @@ export function GeoHeatmap({ data }) {
 
   return (
     <ComposableMap projectionConfig={{ scale: 150 }}>
-      <Geographies geography={geoUrl}>
+      <Geographies geography={geoData}>
         {({ geographies }) =>
           geographies.map((geo) => {
             const geoName = geo.properties.name;
@@ -40,7 +46,6 @@ export function GeoHeatmap({ data }) {
               s.id.toLowerCase() === countryNameMapping[geoName]?.toLowerCase() || 
               countryNameMapping[s.id]?.toLowerCase() === geoName.toLowerCase()
             );
-            console.log("Geo:", geoName, "Data:", d);
             return (
               <Geography
                 key={geo.rsmKey}
