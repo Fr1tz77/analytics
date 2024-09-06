@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
 import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
+import DateRangeSelector from '../components/DateRangeSelector';
 
 const D3Chart = dynamic(() => import('@/components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
 const WorldMap = dynamic(() => import('@/components/WorldMap'), { ssr: false });
@@ -138,34 +139,13 @@ export default function Home() {
     }
   };
 
-  const handleTimeframeChange = (timeframe) => {
-    const now = new Date();
-    let start = new Date();
-    let end = new Date();
-
-    switch (timeframe) {
-      case 'today':
-        start.setHours(0, 0, 0, 0);
-        break;
-      case 'yesterday':
-        start.setDate(start.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
-        end = new Date(start);
-        end.setHours(23, 59, 59, 999);
-        break;
-      case 'last30days':
-        start.setDate(start.getDate() - 30);
-        break;
-      case 'last12months':
-        start.setMonth(start.getMonth() - 12);
-        break;
-      default: // last7days
-        start.setDate(start.getDate() - 7);
-    }
-
+  const handleDateChange = (start, end) => {
     setStartDate(start);
     setEndDate(end);
-    setSelectedTimeframe(timeframe);
+  };
+
+  const handleIntervalChange = (newInterval) => {
+    setTimeInterval(newInterval);
   };
 
   const chartData = {
@@ -520,44 +500,10 @@ export default function Home() {
               />
             </div>
           </div>
-          <div className="mb-6 flex flex-wrap items-center space-x-2 space-y-2">
-            <DatePicker
-              selected={startDate}
-              onChange={date => setStartDate(date)}
-              selectsStart
-              startDate={startDate}
-              endDate={endDate}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            />
-            <DatePicker
-              selected={endDate}
-              onChange={date => setEndDate(date)}
-              selectsEnd
-              startDate={startDate}
-              endDate={endDate}
-              minDate={startDate}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            />
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => handleTimeframeChange(e.target.value)}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last7days">Last 7 days</option>
-              <option value="last30days">Last 30 days</option>
-              <option value="last12months">Last 12 months</option>
-            </select>
-            <select
-              value={timeInterval}
-              onChange={e => setTimeInterval(e.target.value)}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            >
-              <option value="day">Day</option>
-              <option value="hour">Hour</option>
-            </select>
-          </div>
+          <DateRangeSelector 
+            onDateChange={handleDateChange}
+            onIntervalChange={handleIntervalChange}
+          />
           <div className="flex justify-between mb-6">
             {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
               <button
