@@ -9,8 +9,8 @@ import ProtectedPage from "../components/ProtectedPage";
 import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
 
-const D3Chart = dynamic(() => import('../components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
-const GeoHeatmap = dynamic(() => import('../components/GeoHeatmap').then(mod => mod.GeoHeatmap), { ssr: false });
+const D3Chart = dynamic(() => import('@/components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
+const GeoHeatmap = dynamic(() => import('@/components/GeoHeatmap').then(mod => mod.GeoHeatmap), { ssr: false });
 
 const DragDropContext = dynamic(() => import('react-beautiful-dnd').then(mod => mod.DragDropContext), { ssr: false });
 const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Droppable), { ssr: false });
@@ -435,12 +435,27 @@ export default function Home() {
     </div>
   );
 
-  const renderGeoHeatmap = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Geographical Heatmap</h2>
-      <GeoHeatmap data={analyticsData.countries.map(country => ({ id: country._id, value: country.count }))} />
-    </div>
-  );
+  const renderGeoHeatmap = () => {
+    console.log("Countries data:", analyticsData.countries);
+    const heatmapData = analyticsData.countries ? analyticsData.countries.map(country => ({
+      id: country._id,
+      value: country.count
+    })) : [];
+    console.log("Heatmap data:", heatmapData);
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Geographical Heatmap</h2>
+        <div style={{ width: "100%", height: "400px" }}>
+          {heatmapData.length > 0 ? (
+            <GeoHeatmap data={heatmapData} />
+          ) : (
+            <p>No country data available</p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const logAction = async (action, details) => {
     await fetch('/api/audit', {
