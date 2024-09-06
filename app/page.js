@@ -10,7 +10,7 @@ import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
 
 const D3Chart = dynamic(() => import('@/components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
-const GeoHeatmap = dynamic(() => import('@/components/GeoHeatmap').then(mod => mod.GeoHeatmap), { ssr: false });
+const WorldMap = dynamic(() => import('@/components/WorldMap'), { ssr: false });
 
 const DragDropContext = dynamic(() => import('react-beautiful-dnd').then(mod => mod.DragDropContext), { ssr: false });
 const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Droppable), { ssr: false });
@@ -445,23 +445,42 @@ export default function Home() {
     </div>
   );
 
-  const renderGeoHeatmap = () => {
+  const renderWorldMap = () => {
     console.log("Countries data:", analyticsData.countries);
-    const heatmapData = analyticsData.countries ? analyticsData.countries.map(country => ({
+    const mapData = analyticsData.countries ? analyticsData.countries.map(country => ({
       id: country._id,
-      value: country.count
-    })) : [];
-    console.log("Heatmap data:", heatmapData);
+      value: country.count,
+      coordinates: getCountryCoordinates(country._id)
+    })).filter(country => country.coordinates) : [];
+    console.log("Map data:", mapData);
 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Geographical Heatmap</h2>
-        <div style={{ width: "100%", height: "400px" }}>
-          <GeoHeatmap data={heatmapData} />
+        <h2 className="text-xl font-semibold mb-4">Geographical Distribution</h2>
+        <div style={{ height: '400px', width: '100%' }}>
+          <WorldMap data={mapData} darkMode={darkMode} />
         </div>
       </div>
     );
   };
+
+  // Add this function to get country coordinates
+  function getCountryCoordinates(countryName) {
+    const coordinates = {
+      'United States': [37.0902, -95.7129],
+      'United Kingdom': [55.3781, -3.4360],
+      'Germany': [51.1657, 10.4515],
+      'France': [46.2276, 2.2137],
+      'Canada': [56.1304, -106.3468],
+      'Australia': [-25.2744, 133.7751],
+      'Japan': [36.2048, 138.2529],
+      'China': [35.8617, 104.1954],
+      'India': [20.5937, 78.9629],
+      'Brazil': [-14.2350, -51.9253],
+      // Add more countries as needed
+    };
+    return coordinates[countryName] || null;
+  }
 
   const logAction = async (action, details) => {
     await fetch('/api/audit', {
@@ -582,7 +601,7 @@ export default function Home() {
             </DragDropContext>
           )}
           {renderD3Chart()}
-          {renderGeoHeatmap()}
+          {renderWorldMap()}
         </div>
       </div>
     </ProtectedPage>
