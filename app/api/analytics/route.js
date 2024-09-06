@@ -74,8 +74,6 @@ export async function GET(req) {
     const topSources = processTopData(filteredEvents, 'referrer', 'Direct');
     const topPages = processTopData(filteredEvents, 'path');
     const countries = processTopData(filteredEvents, 'country');
-    console.log('Countries (unprocessed):', filteredEvents.map(e => e.country));
-    console.log('Countries (processed):', countries);
     const browsers = processTopData(filteredEvents, 'browser');
 
     console.log('Top Sources:', topSources);
@@ -106,15 +104,22 @@ export async function GET(req) {
 }
 
 function processTopData(events, field, defaultValue = 'Unknown') {
+  console.log(`Processing ${field} data`);
   const data = events.reduce((acc, event) => {
     const value = event[field] || defaultValue;
+    if (field === 'country') {
+      console.log(`Event country: ${value}`);
+    }
     acc[value] = (acc[value] || 0) + 1;
     return acc;
   }, {});
 
-  return Object.entries(data)
+  const result = Object.entries(data)
     .map(([_id, count]) => ({ _id, count }))
     .sort((a, b) => b.count - a.count);
+  
+  console.log(`Processed ${field} data:`, result);
+  return result;
 }
 
 async function getCohortData(db, startDate, endDate) {

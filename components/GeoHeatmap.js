@@ -17,8 +17,16 @@ const countryNameMapping = {
 export function GeoHeatmap({ data }) {
   console.log("GeoHeatmap data:", data);
 
+  if (!data || data.length === 0) {
+    console.warn("No data provided to GeoHeatmap");
+    return <div>No data available for the heatmap</div>;
+  }
+
+  const maxValue = Math.max(...data.map(d => d.value));
+  console.log("Max value:", maxValue);
+
   const colorScale = scaleLinear()
-    .domain([0, Math.max(...data.map(d => d.value))])
+    .domain([0, maxValue])
     .range(["#ffedea", "#ff5233"]);
 
   return (
@@ -28,9 +36,9 @@ export function GeoHeatmap({ data }) {
           geographies.map((geo) => {
             const geoName = geo.properties.name;
             const d = data.find((s) => 
-              s.id === geoName || 
-              s.id === countryNameMapping[geoName] || 
-              countryNameMapping[s.id] === geoName
+              s.id.toLowerCase() === geoName.toLowerCase() || 
+              s.id.toLowerCase() === countryNameMapping[geoName]?.toLowerCase() || 
+              countryNameMapping[s.id]?.toLowerCase() === geoName.toLowerCase()
             );
             console.log("Geo:", geoName, "Data:", d);
             return (
