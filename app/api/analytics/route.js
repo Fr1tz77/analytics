@@ -74,6 +74,8 @@ export async function GET(req) {
     const topSources = processTopData(filteredEvents, 'referrer', 'Direct');
     const topPages = processTopData(filteredEvents, 'path');
     const countries = processTopData(filteredEvents, 'country');
+    console.log('Countries (unprocessed):', filteredEvents.map(e => e.country));
+    console.log('Countries (processed):', countries);
     const browsers = processTopData(filteredEvents, 'browser');
 
     console.log('Top Sources:', topSources);

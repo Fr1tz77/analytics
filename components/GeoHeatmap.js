@@ -8,6 +8,9 @@ const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/wo
 const countryNameMapping = {
   "United States": "United States of America",
   "UK": "United Kingdom",
+  "The Netherlands": "Netherlands",
+  "Czech Republic": "Czechia",
+  "Bosnia and Herzegovina": "Bosnia and Herz.",
   // Add more mappings as needed
 };
 
