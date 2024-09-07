@@ -1,10 +1,25 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 export function D3Chart({ data }) {
   const svgRef = useRef();
+  const [dimensions, setDimensions] = useState({ width: 300, height: 200 });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      const containerWidth = svgRef.current.parentElement.clientWidth;
+      setDimensions({
+        width: Math.max(300, containerWidth),
+        height: Math.min(containerWidth * 0.6, 400)
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
   useEffect(() => {
     if (data && svgRef.current) {
@@ -12,8 +27,8 @@ export function D3Chart({ data }) {
       svg.selectAll("*").remove(); // Clear previous chart
 
       const margin = { top: 20, right: 30, bottom: 40, left: 40 };
-      const width = 400 - margin.left - margin.right;
-      const height = 300 - margin.top - margin.bottom;
+      const width = dimensions.width - margin.left - margin.right;
+      const height = dimensions.height - margin.top - margin.bottom;
 
       const x = d3.scaleBand()
         .domain(data.map(d => d.label))
@@ -33,7 +48,9 @@ export function D3Chart({ data }) {
         .call(d3.axisBottom(x))
         .selectAll("text")
         .attr("transform", "rotate(-45)")
-        .style("text-anchor", "end");
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em");
 
       g.append("g")
         .call(d3.axisLeft(y));
@@ -62,7 +79,7 @@ export function D3Chart({ data }) {
         .style("text-anchor", "middle")
         .text("Page Views");
     }
-  }, [data]);
+  }, [data, dimensions]);
 
-  return <svg ref={svgRef} width="400" height="300"></svg>;
+  return <svg ref={svgRef} width={dimensions.width} height={dimensions.height}></svg>;
 }

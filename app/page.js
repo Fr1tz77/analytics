@@ -416,9 +416,13 @@ export default function Home() {
   };
 
   const renderD3Chart = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">D3 Visualization</h2>
-      <D3Chart data={analyticsData.topPages.map(page => ({ label: page._id, value: page.count }))} />
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 sm:p-6 mb-4 sm:mb-8 overflow-x-auto">
+      <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">D3 Visualization</h2>
+      <div className="w-full overflow-x-scroll sm:overflow-x-auto">
+        <div className="min-w-[300px]">
+          <D3Chart data={analyticsData.topPages.map(page => ({ label: page._id, value: page.count }))} />
+        </div>
+      </div>
     </div>
   );
 
@@ -469,24 +473,24 @@ export default function Home() {
 
   return (
     <ProtectedPage>
-      <div className={`min-h-screen p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-apple-gray text-gray-900'}`}>
+      <div className={`min-h-screen p-2 sm:p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-apple-gray text-gray-900'}`}>
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold mb-4 sm:mb-0">Analytics Dashboard</h1>
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-0">Analytics Dashboard</h1>
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+                className="p-1 sm:p-2 rounded-full bg-gray-200 dark:bg-gray-700"
                 aria-label="Toggle dark mode"
               >
-                {darkMode ? <SunIcon className="h-6 w-6 text-yellow-400" /> : <MoonIcon className="h-6 w-6 text-gray-700" />}
+                {darkMode ? <SunIcon className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" /> : <MoonIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />}
               </button>
               <button
                 onClick={() => fileInputRef.current.click()}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+                className="p-1 sm:p-2 rounded-full bg-gray-200 dark:bg-gray-700"
                 aria-label="Import data"
               >
-                <ArrowUpTrayIcon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+                <ArrowUpTrayIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700 dark:text-gray-300" />
               </button>
               <input
                 type="file"
@@ -497,23 +501,23 @@ export default function Home() {
               />
             </div>
           </div>
-          <div className="mb-8">
+          <div className="mb-4 sm:mb-8">
             <DateRangeSelector onDateChange={handleDateChange} />
           </div>
-          <div className="mb-8">
-            <div className="flex justify-between">
+          <div className="mb-4 sm:mb-8">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:justify-between">
               {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
                 <button
                   key={metric}
                   onClick={() => setSelectedMetric(metric)}
-                  className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm rounded-lg transition-colors duration-200 ${
                     selectedMetric === metric 
                       ? 'bg-blue-500 text-white' 
                       : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {metric === 'avgDuration' ? 'Avg Duration (m)' : 
-                   metric === 'bounceRate' ? 'Bounce Rate (%)' :
+                  {metric === 'avgDuration' ? 'Avg Duration' : 
+                   metric === 'bounceRate' ? 'Bounce Rate' :
                    metric.charAt(0).toUpperCase() + metric.slice(1)}
                 </button>
               ))}
@@ -523,7 +527,7 @@ export default function Home() {
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="dashboard">
                 {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="grid grid-cols-1 gap-4">
                     {dashboardLayout.map((widget, index) => (
                       <Draggable key={widget.id} draggableId={widget.id} index={index}>
                         {(provided) => (
