@@ -5,8 +5,8 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const WorldMap = ({ data, darkMode }) => {
-  const mapRef = useRef(null);
   const [map, setMap] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     if (map) {
@@ -32,6 +32,7 @@ const WorldMap = ({ data, darkMode }) => {
           zoom={2}
           style={{ height: '100%', width: '100%' }}
           whenCreated={setMap}
+          key={darkMode ? 'dark' : 'light'}
         >
           <TileLayer
             url={darkMode 
@@ -47,7 +48,7 @@ const WorldMap = ({ data, darkMode }) => {
             }
             return (
               <CircleMarker
-                key={index}
+                key={`${country.id}-${index}`}
                 center={country.coordinates}
                 radius={Math.max(5, (country.value / maxValue) * 20)}
                 fillColor="#ff7800"
