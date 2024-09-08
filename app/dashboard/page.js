@@ -356,7 +356,7 @@ export default function Dashboard() {
             <ul className="space-y-2">
               {analyticsData.topSources.map(source => (
                 <li key={source._id} className="flex justify-between">
-                  <span>{source._id || 'Direct'}</span>
+                  <span>{source._id === 'Twitter / X' ? 'Twitter / X' : (source._id || 'Direct')}</span>
                   <span className="font-semibold">{source.count}</span>
                 </li>
               ))}

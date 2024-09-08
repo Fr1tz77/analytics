@@ -125,7 +125,13 @@ export async function GET(req) {
 
 function processTopData(events, field, defaultValue = 'Unknown') {
   const data = events.reduce((acc, event) => {
-    const value = event[field] || defaultValue;
+    let value = event[field] || defaultValue;
+    
+    // Process t.co links
+    if (field === 'referrer' && value.includes('t.co')) {
+      value = 'Twitter / X';
+    }
+    
     acc[value] = (acc[value] || 0) + 1;
     return acc;
   }, {});
