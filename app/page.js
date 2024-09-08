@@ -9,7 +9,7 @@ import Footer from './components/Footer';
 
 export default function Home() {
   return (
-    <main className="bg-gradient-to-b from-gray-50 to-white">
+    <main>
       <Navbar />
       <Hero />
       <Features />
