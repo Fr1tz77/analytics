@@ -1,7 +1,6 @@
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import SocialProof from './components/SocialProof';
-import Benefits from './components/Benefits';
+import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import Testimonials from './components/Testimonials';
 import FAQ from './components/FAQ';
@@ -10,11 +9,10 @@ import Footer from './components/Footer';
 
 export default function Home() {
   return (
-    <main>
+    <main className="bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
       <Hero />
-      <SocialProof />
-      <Benefits />
+      <Features />
       <HowItWorks />
       <Testimonials />
       <FAQ />
