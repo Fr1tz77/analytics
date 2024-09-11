@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import clientPromise from '../../../lib/mongodb'
+import moment from 'moment-timezone';
 
 export async function GET(req) {
   console.log("GET request received");
@@ -9,16 +10,17 @@ export async function GET(req) {
     const end = searchParams.get('end')
     const metric = searchParams.get('metric') || 'pageviews'
     const interval = searchParams.get('interval') || 'day'
+    const timeZone = searchParams.get('timeZone') || 'UTC'
 
-    console.log(`Fetching ${metric} from ${start} to ${end} with interval ${interval}`);
+    console.log(`Fetching ${metric} from ${start} to ${end} with interval ${interval} in time zone ${timeZone}`);
 
     const client = await clientPromise
     const db = client.db("analytics")
 
     console.log("Connected to database:", db.databaseName);
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startDate = moment.tz(start, timeZone).toDate();
+    const endDate = moment.tz(end, timeZone).toDate();
 
     console.log('Start date:', startDate);
     console.log('End date:', endDate);
@@ -46,27 +48,22 @@ export async function GET(req) {
     // Process events
     const processedEvents = filteredEvents.reduce((acc, event) => {
       let date;
+      const eventMoment = moment.tz(event.timestamp, timeZone);
       switch (interval) {
         case 'hour':
-          date = new Date(event.timestamp).toISOString().slice(0, 13); // YYYY-MM-DDTHH
+          date = eventMoment.format('YYYY-MM-DDTHH');
           break;
         case '3hour':
-          date = new Date(event.timestamp);
-          date.setHours(Math.floor(date.getHours() / 3) * 3, 0, 0, 0);
-          date = date.toISOString().slice(0, 13);
+          date = eventMoment.startOf('hour').subtract(eventMoment.hour() % 3, 'hours').format('YYYY-MM-DDTHH');
           break;
         case '12hour':
-          date = new Date(event.timestamp);
-          date.setHours(Math.floor(date.getHours() / 12) * 12, 0, 0, 0);
-          date = date.toISOString().slice(0, 13);
+          date = eventMoment.startOf('hour').subtract(eventMoment.hour() % 12, 'hours').format('YYYY-MM-DDTHH');
           break;
         case 'week':
-          date = new Date(event.timestamp);
-          date.setDate(date.getDate() - date.getDay());
-          date = date.toISOString().split('T')[0];
+          date = eventMoment.startOf('week').format('YYYY-MM-DD');
           break;
         default: // 'day'
-          date = new Date(event.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
+          date = eventMoment.format('YYYY-MM-DD');
       }
       if (!acc[date]) {
         acc[date] = { date, pageviews: 0, uniqueVisitors: new Set(), totalDuration: 0, bounces: 0 };
@@ -157,7 +154,7 @@ async function getCohortData(db, startDate, endDate) {
       retentionData: { 
         $push: { 
           user: "$_id.user", 
-          days: { $divide: [{ $subtract: ["$firstVisit", { $dateFromString: { dateString: "$_id.cohort" } }] }, 86400000] }
+          days: { $divide: [{ $subtract: ["$firstVisit", { $dateFromString: { dateString: "$_id.cohort" } } ] }, 86400000] }
         }
       }
     }},

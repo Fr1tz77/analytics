@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import DateRangeSelector from '../components/DateRangeSelector';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import moment from 'moment-timezone';
 
 const D3Chart = dynamic(() => import('../components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
 const WorldMap = dynamic(() => import('../components/WorldMap'), { ssr: false });
@@ -90,10 +91,16 @@ export default function Dashboard() {
     { id: 'funnelAnalysis', title: 'Funnel Analysis' },
   ]);
   const router = useRouter();
+  const [timeZone, setTimeZone] = useState('UTC');
+
+  useEffect(() => {
+    // Set default time zone to user's local time zone
+    setTimeZone(moment.tz.guess());
+  }, []);
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [startDate, endDate, selectedMetric, timeInterval]);
+  }, [startDate, endDate, selectedMetric, timeInterval, timeZone]);
 
   useEffect(() => {
     if (darkMode) {
@@ -123,7 +130,7 @@ export default function Dashboard() {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}&interval=${timeInterval}`);
+      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
@@ -534,6 +541,19 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Time Zone</label>
+            <select
+              id="timezone"
+              value={timeZone}
+              onChange={(e) => setTimeZone(e.target.value)}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              {moment.tz.names().map((tz) => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
           </div>
           {typeof window !== 'undefined' && (
             <DragDropContext onDragEnd={onDragEnd}>

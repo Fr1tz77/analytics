@@ -35,13 +35,23 @@ const DateRangeSelector = ({ onDateChange }) => {
     let end = new Date();
     let start = new Date();
 
-    if (preset.days === 'month') {
+    if (preset.days === 0) {
+      // Today: set start to beginning of current day
+      start.setHours(0, 0, 0, 0);
+    } else if (preset.days === 1) {
+      // Yesterday: set start and end to yesterday
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+    } else if (preset.days === 'month') {
       start = new Date(end.getFullYear(), end.getMonth(), 1);
     } else if (preset.days === 'lastMonth') {
       start = new Date(end.getFullYear(), end.getMonth() - 1, 1);
       end = new Date(end.getFullYear(), end.getMonth(), 0);
     } else {
       start.setDate(end.getDate() - preset.days);
+      start.setHours(0, 0, 0, 0);
     }
 
     setStartDate(start);
