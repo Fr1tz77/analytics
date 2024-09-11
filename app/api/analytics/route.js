@@ -17,33 +17,29 @@ export async function GET(req) {
     const client = await clientPromise
     const db = client.db("analytics")
 
-    console.log("Connected to database:", db.databaseName);
-
     const startDate = moment.tz(start, timeZone).toDate();
     const endDate = moment.tz(end, timeZone).toDate();
 
-    console.log('Start date:', startDate);
-    console.log('End date:', endDate);
+    console.log(`Start date: ${startDate}, End date: ${endDate}`);
 
-    const totalDocs = await db.collection("events").countDocuments();
-    console.log("Total documents in collection:", totalDocs);
+    // Check if there are any events in the database
+    const totalEvents = await db.collection("events").countDocuments();
+    console.log(`Total events in database: ${totalEvents}`);
 
-    // Fetch all events
-    const allEvents = await db.collection("events").find().toArray();
+    // Fetch all events without date filtering for debugging
+    const allEvents = await db.collection("events").find({}).toArray();
+    console.log(`Total fetched events: ${allEvents.length}`);
+    if (allEvents.length > 0) {
+      console.log('Sample event:', allEvents[0]);
+    }
 
-    console.log(`Found ${allEvents.length} total events`);
-
-    // Filter out localhost and development environments
+    // Now apply the date filter
     const filteredEvents = allEvents.filter(event => {
       const eventDate = new Date(event.timestamp);
-      return eventDate >= startDate && eventDate <= endDate && !event.url.includes('localhost') && !event.url.includes('.local');
+      return eventDate >= startDate && eventDate <= endDate;
     });
 
-    console.log(`Found ${filteredEvents.length} events in date range`);
-
-    if (filteredEvents.length > 0) {
-      console.log("Sample event:", filteredEvents[0]);
-    }
+    console.log(`Filtered events: ${filteredEvents.length}`);
 
     // Process events
     const processedEvents = filteredEvents.reduce((acc, event) => {
@@ -81,22 +77,15 @@ export async function GET(req) {
       date: event.date,
       pageviews: event.pageviews,
       uniqueVisitors: event.uniqueVisitors.size,
-      avgDuration: event.pageviews > 0 ? event.totalDuration / event.pageviews : 0, // Keep in milliseconds
-      bounceRate: event.pageviews > 0 ? (event.bounces / event.pageviews * 100) : 0 // Calculate bounce rate as percentage, don't round here
+      avgDuration: event.pageviews > 0 ? event.totalDuration / event.pageviews : 0,
+      bounceRate: event.pageviews > 0 ? (event.bounces / event.pageviews * 100) : 0
     }));
 
-    console.log('Processed events:', events);
-
     // Process top sources, pages, countries, and browsers
-    const topSources = processTopData(filteredEvents, 'referrer', 'Direct');
-    const topPages = processTopData(filteredEvents, 'path');
-    const countries = processTopData(filteredEvents, 'country');
-    const browsers = processTopData(filteredEvents, 'browser');
-
-    console.log('Top Sources:', topSources);
-    console.log('Top Pages:', topPages);
-    console.log('Countries:', countries);
-    console.log('Browsers:', browsers);
+    const topSources = processTopData(filteredEvents, 'referrer', 'Direct', metric);
+    const topPages = processTopData(filteredEvents, 'path', undefined, metric);
+    const countries = processTopData(filteredEvents, 'country', undefined, metric);
+    const browsers = processTopData(filteredEvents, 'browser', undefined, metric);
 
     // Add cohort analysis
     const cohortData = await getCohortData(db, startDate, endDate);
@@ -105,7 +94,7 @@ export async function GET(req) {
     const funnelSteps = ['homepage', 'product', 'cart', 'checkout', 'purchase'];
     const funnelData = await getFunnelData(db, funnelSteps, startDate, endDate);
 
-    return NextResponse.json({ 
+    const result = { 
       events, 
       topSources, 
       topPages, 
@@ -113,28 +102,38 @@ export async function GET(req) {
       browsers,
       cohortData,
       funnelData
-    })
+    };
+
+    console.log('Sending response:', result);
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching analytics:', error)
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
   }
 }
 
-function processTopData(events, field, defaultValue = 'Unknown') {
+function processTopData(events, field, defaultValue = 'Unknown', metric) {
   const data = events.reduce((acc, event) => {
     let value = event[field] || defaultValue;
     
-    // Process t.co links
     if (field === 'referrer' && value.includes('t.co')) {
       value = 'Twitter / X';
     }
     
-    acc[value] = (acc[value] || 0) + 1;
+    if (!acc[value]) {
+      acc[value] = { pageviews: 0, uniqueVisitors: new Set() };
+    }
+    acc[value].pageviews++;
+    acc[value].uniqueVisitors.add(event.userAgent);
     return acc;
   }, {});
 
   return Object.entries(data)
-    .map(([_id, count]) => ({ _id, count }))
+    .map(([_id, counts]) => ({ 
+      _id, 
+      count: metric === 'uniqueVisitors' ? counts.uniqueVisitors.size : counts.pageviews 
+    }))
     .sort((a, b) => b.count - a.count);
 }
 

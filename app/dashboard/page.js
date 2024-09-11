@@ -129,15 +129,13 @@ export default function Dashboard() {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
+      console.log(`Fetching data from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
-      console.log('Fetched data:', data);
-      if (data.events && data.events.length > 0) {
-        console.log('Sample event:', data.events[0]);
-      }
+      console.log('Fetched data:', data);  // Add this line
       setAnalyticsData(data);
       setError(null);
     } catch (error) {
@@ -345,6 +343,21 @@ export default function Dashboard() {
     const isHalfWidth = ['topSources', 'topPages', 'countries', 'browsers'].includes(widget.id);
     const widgetClass = isHalfWidth ? 'md:col-span-1' : 'md:col-span-2';
 
+    const renderList = (data, label) => (
+      data && data.length > 0 ? (
+        <ul className="space-y-2">
+          {data.map(item => (
+            <li key={item._id} className="flex justify-between">
+              <span>{item._id === 'Twitter / X' ? 'Twitter / X' : (item._id || 'Direct')}</span>
+              <span className="font-semibold">{item.count}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No {label} data available for the selected period.</p>
+      )
+    );
+
     switch (widget.id) {
       case 'chart':
         return renderSection(widget.title, 
@@ -361,37 +374,11 @@ export default function Dashboard() {
           </div>
         , widgetClass);
       case 'topSources':
-        return renderSection(widget.title, 
-          analyticsData.topSources && analyticsData.topSources.length > 0 ? (
-            <ul className="space-y-2">
-              {analyticsData.topSources.map(source => (
-                <li key={source._id} className="flex justify-between">
-                  <span>{source._id === 'Twitter / X' ? 'Twitter / X' : (source._id || 'Direct')}</span>
-                  <span className="font-semibold">{source.count}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400">No source data available for the selected period.</p>
-          )
-        , widgetClass);
+        return renderSection(`Top Sources (${selectedMetric})`, renderList(analyticsData.topSources, 'source'), widgetClass);
       case 'topPages':
-        return renderSection(widget.title, 
-          analyticsData.topPages && analyticsData.topPages.length > 0 ? (
-            <ul className="space-y-2">
-              {analyticsData.topPages.map(page => (
-                <li key={page._id} className="flex justify-between">
-                  <span>{page._id}</span>
-                  <span className="font-semibold">{page.count}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400">No page data available for the selected period.</p>
-          )
-        , widgetClass);
+        return renderSection(`Top Pages (${selectedMetric})`, renderList(analyticsData.topPages, 'page'), widgetClass);
       case 'countries':
-        return renderSection(widget.title, 
+        return renderSection(`Visitors by Country (${selectedMetric})`, 
           analyticsData.countries && analyticsData.countries.length > 0 ? (
             <ul className="space-y-2">
               {analyticsData.countries.map(country => (
@@ -408,20 +395,7 @@ export default function Dashboard() {
           )
         , widgetClass);
       case 'browsers':
-        return renderSection(widget.title, 
-          analyticsData.browsers && analyticsData.browsers.length > 0 ? (
-            <ul className="space-y-2">
-              {analyticsData.browsers.map(browser => (
-                <li key={browser._id} className="flex justify-between">
-                  <span>{browser._id}</span>
-                  <span className="font-semibold">{browser.count}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400">No browser data available for the selected period.</p>
-          )
-        , widgetClass);
+        return renderSection(`Browsers (${selectedMetric})`, renderList(analyticsData.browsers, 'browser'), widgetClass);
       case 'cohortAnalysis':
         return renderCohortAnalysis(widgetClass);
       case 'funnelAnalysis':
