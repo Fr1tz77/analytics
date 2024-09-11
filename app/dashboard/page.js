@@ -48,16 +48,15 @@ function getCountryCode(countryName) {
   return countryCodes[countryName] || countryName.slice(0, 2).toUpperCase();
 }
 
-function formatChartLabel(dateString, interval) {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    // If the date is invalid, return the original string
-    return dateString;
-  }
-  if (interval === 'hour') {
-    return date.toLocaleString('en-US', { hour: 'numeric', hour12: true });
+function formatChartLabel(dateString, interval, timeZone) {
+  const date = moment.tz(dateString, timeZone);
+  
+  if (interval === 'hour' || interval === '3hour' || interval === '12hour') {
+    return date.format('ha'); // e.g., 1am, 2pm
+  } else if (interval === 'day' || interval === 'week') {
+    return date.format('MM-DD'); // e.g., 09-11
   } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.format('YYYY-MM-DD'); // fallback format
   }
 }
 
@@ -156,12 +155,7 @@ export default function Dashboard() {
   };
 
   const chartData = {
-    labels: analyticsData.events?.map(item => {
-      if (typeof item.date === 'string' && (item.date.includes('AM') || item.date.includes('PM') || item.date.includes(' '))) {
-        return item.date;
-      }
-      return formatChartLabel(item.date, timeInterval);
-    }) || [],
+    labels: analyticsData.events?.map(item => formatChartLabel(item.date, timeInterval, timeZone)) || [],
     datasets: [
       {
         label: selectedMetric === 'avgDuration' 
@@ -197,6 +191,15 @@ export default function Dashboard() {
             ? 'Bounce Rate (%)'
             : selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
       },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            const index = context[0].dataIndex;
+            const originalDate = analyticsData.events[index].date;
+            return moment.tz(originalDate, timeZone).format('YYYY-MM-DD HH:mm');
+          }
+        }
+      }
     },
     scales: {
       x: {
