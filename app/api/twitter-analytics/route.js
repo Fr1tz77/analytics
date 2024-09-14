@@ -21,12 +21,17 @@ export async function GET(req) {
       consumer_key: process.env.TWITTER_CONSUMER_KEY ? 'Set' : 'Not set',
       consumer_secret: process.env.TWITTER_CONSUMER_SECRET ? 'Set' : 'Not set',
       access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY ? 'Set' : 'Not set',
-      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET ? 'Set' : 'Not set'
+      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET ? 'Set' : 'Not set',
+      user_id: process.env.TWITTER_USER_ID
     });
 
     const twitterData = await fetchTwitterAnalytics(startDate, endDate);
 
     console.log('Fetched Twitter data:', twitterData);
+
+    if (twitterData.length === 0) {
+      return NextResponse.json({ twitterAnalytics: [], message: 'No Twitter data found for the specified period' });
+    }
 
     const mongoClient = await clientPromise;
     const db = mongoClient.db("analytics");
@@ -50,7 +55,7 @@ async function fetchTwitterAnalytics(startDate, endDate) {
   try {
     // Verify credentials
     const user = await client.get('users/me');
-    console.log('Current user:', user);
+    console.log('Current user:', JSON.stringify(user, null, 2));
 
     // Fetch user's tweets
     const tweets = await client.get('tweets/search/recent', {
@@ -79,6 +84,9 @@ async function fetchTwitterAnalytics(startDate, endDate) {
     }));
   } catch (error) {
     console.error('Error fetching Twitter data:', JSON.stringify(error.errors || error, null, 2));
+    if (error.errors) {
+      error.errors.forEach(e => console.error(`Twitter API Error: ${e.code} - ${e.message}`));
+    }
     throw error;
   }
 }
