@@ -94,6 +94,14 @@ export async function GET(req) {
     const funnelSteps = ['homepage', 'product', 'cart', 'checkout', 'purchase'];
     const funnelData = await getFunnelData(db, funnelSteps, startDate, endDate);
 
+    // Fetch Twitter analytics data
+    const twitterAnalytics = await db.collection("twitter_analytics")
+      .find({
+        date: { $gte: startDate, $lte: endDate }
+      })
+      .sort({ date: 1 })
+      .toArray();
+
     const result = { 
       events, 
       topSources, 
@@ -101,7 +109,8 @@ export async function GET(req) {
       countries, 
       browsers,
       cohortData,
-      funnelData
+      funnelData,
+      twitterAnalytics // Add this line
     };
 
     console.log('Sending response:', result);

@@ -70,7 +70,8 @@ export default function Dashboard() {
     countries: [],
     browsers: [],
     cohortData: [],
-    funnelData: {}
+    funnelData: {},
+    twitterAnalytics: []
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +89,7 @@ export default function Dashboard() {
     { id: 'browsers', title: 'Browsers' },
     { id: 'cohortAnalysis', title: 'Cohort Analysis' },
     { id: 'funnelAnalysis', title: 'Funnel Analysis' },
+    { id: 'twitterAnalytics', title: 'Twitter Analytics' },
   ]);
   const router = useRouter();
   const [timeZone, setTimeZone] = useState('UTC');
@@ -327,6 +329,27 @@ export default function Dashboard() {
     );
   };
 
+  const renderTwitterAnalytics = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+      <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
+      {analyticsData.twitterAnalytics && analyticsData.twitterAnalytics.length > 0 ? (
+        <ul>
+          {analyticsData.twitterAnalytics.map((data, index) => (
+            <li key={index} className="mb-2">
+              <p>Date: {new Date(data.date).toLocaleDateString()}</p>
+              <p>Impressions: {data.data.impressions}</p>
+              <p>Likes: {data.data.likes}</p>
+              <p>Retweets: {data.data.retweets}</p>
+              <p>Replies: {data.data.replies}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No Twitter data available for the selected period.</p>
+      )}
+    </div>
+  );
+
   const onDragEnd = (result) => {
     if (!result.destination) {
       return;
@@ -400,6 +423,8 @@ export default function Dashboard() {
         return renderCohortAnalysis(widgetClass);
       case 'funnelAnalysis':
         return renderFunnelAnalysis(widgetClass);
+      case 'twitterAnalytics':
+        return renderTwitterAnalytics();
       default:
         return null;
     }
