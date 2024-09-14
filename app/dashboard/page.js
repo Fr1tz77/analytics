@@ -139,7 +139,7 @@ export default function Dashboard() {
       const data = await response.json();
       console.log('Fetched analytics data:', data);
 
-      // Fetch real Twitter data
+      // Fetch mock Twitter data
       const twitterResponse = await fetch('/api/twitter-analytics');
       if (!twitterResponse.ok) {
         throw new Error('Failed to fetch Twitter data');
