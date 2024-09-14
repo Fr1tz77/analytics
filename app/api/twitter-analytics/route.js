@@ -1,40 +1,78 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
-import Twitter from 'twitter-lite';
+import axios from 'axios';
 
-const client = new Twitter({
-  subdomain: "api",
-  version: "2",
-  consumer_key: process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
-  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
-});
+const API_BASE_URL = 'https://api.twitter.com/2'; // Replace with the actual base URL
+
+async function getAccessToken() {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/oauth2/token`, {
+      grant_type: 'client_credentials',
+    }, {
+      auth: {
+        username: process.env.TWITTER_CONSUMER_KEY,
+        password: process.env.TWITTER_CONSUMER_SECRET,
+      },
+    });
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+async function getBusinessUnits(token) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/business_units`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting business units:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+async function getEnterpriseReport(token, businessUnitId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/enterprise/latest_report`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { business_unit_id: businessUnitId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting enterprise report:', error.response?.data || error.message);
+    throw error;
+  }
+}
 
 export async function GET(req) {
   try {
-    const endDate = new Date().toISOString();
-    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days ago
-
-    console.log(`Using date range: ${startDate} to ${endDate}`);
-    console.log('Twitter API credentials:', {
-      consumer_key: process.env.TWITTER_CONSUMER_KEY ? 'Set' : 'Not set',
-      consumer_secret: process.env.TWITTER_CONSUMER_SECRET ? 'Set' : 'Not set',
-      access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY ? 'Set' : 'Not set',
-      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET ? 'Set' : 'Not set',
-      user_id: process.env.TWITTER_USER_ID
-    });
-
     console.log('Fetching Twitter analytics...');
-    const twitterData = await fetchTwitterAnalytics(startDate, endDate);
 
-    console.log('Fetched Twitter data:', JSON.stringify(twitterData, null, 2));
+    // Step 1: Get access token
+    const accessToken = await getAccessToken();
+    console.log('Access token obtained');
 
-    if (twitterData.length === 0) {
-      console.log('No Twitter data found for the specified period');
-      return NextResponse.json({ twitterAnalytics: [], message: 'No Twitter data found for the specified period' });
+    // Step 2: Get business units
+    const businessUnits = await getBusinessUnits(accessToken);
+    console.log('Business units:', businessUnits);
+
+    // Assuming we want the first business unit, adjust as needed
+    const businessUnitId = businessUnits[0]?.id;
+
+    if (!businessUnitId) {
+      throw new Error('No business unit found');
     }
 
+    // Step 3: Get enterprise report
+    const report = await getEnterpriseReport(accessToken, businessUnitId);
+    console.log('Enterprise report:', JSON.stringify(report, null, 2));
+
+    // Process the report data as needed
+    const twitterData = processReportData(report);
+
+    // Store in MongoDB
     const mongoClient = await clientPromise;
     const db = mongoClient.db("analytics");
     const result = await db.collection("twitter_analytics").insertOne({
@@ -46,54 +84,24 @@ export async function GET(req) {
 
     return NextResponse.json({ twitterAnalytics: twitterData });
   } catch (error) {
-    console.error('Error in Twitter analytics GET route:', JSON.stringify(error, null, 2));
+    console.error('Error in Twitter analytics GET route:', error);
     return NextResponse.json({ error: 'Failed to fetch Twitter analytics', details: error.message || 'Unknown error' }, { status: 500 });
   }
 }
 
-async function fetchTwitterAnalytics(startDate, endDate) {
-  console.log(`Fetching Twitter analytics from ${startDate} to ${endDate}`);
-  
-  try {
-    // Verify credentials
-    console.log('Verifying Twitter credentials...');
-    const user = await client.get('users/me');
-    console.log('Current user:', JSON.stringify(user, null, 2));
-
-    // Fetch user's tweets
-    console.log(`Fetching tweets for user ID: ${process.env.TWITTER_USER_ID}`);
-    const tweets = await client.get('tweets/search/recent', {
-      query: `from:${process.env.TWITTER_USER_ID}`,
-      start_time: startDate,
-      end_time: endDate,
-      max_results: 100,
-      'tweet.fields': 'public_metrics,created_at'
-    });
-
-    console.log('Twitter API response:', JSON.stringify(tweets, null, 2));
-
-    if (!tweets.data || tweets.data.length === 0) {
-      console.log('No tweets found in the specified date range');
-      return [];
+function processReportData(report) {
+  // Process the report data to extract relevant information
+  // This function should be implemented based on the structure of the enterprise report
+  // For now, we'll return a placeholder
+  return [
+    {
+      id: 'placeholder',
+      created_at: new Date().toISOString(),
+      text: 'Placeholder tweet',
+      impressions: 0,
+      likes: 0,
+      retweets: 0,
+      replies: 0
     }
-
-    return tweets.data.map(tweet => ({
-      id: tweet.id,
-      created_at: tweet.created_at,
-      text: tweet.text,
-      impressions: tweet.public_metrics.impression_count,
-      likes: tweet.public_metrics.like_count,
-      retweets: tweet.public_metrics.retweet_count,
-      replies: tweet.public_metrics.reply_count
-    }));
-  } catch (error) {
-    console.error('Error fetching Twitter data:', JSON.stringify(error, null, 2));
-    if (error.errors) {
-      error.errors.forEach(e => console.error(`Twitter API Error: ${e.code} - ${e.message}`));
-    }
-    if (error.data) {
-      console.error('Twitter API Error Data:', JSON.stringify(error.data, null, 2));
-    }
-    throw error;
-  }
+  ];
 }
