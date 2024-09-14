@@ -139,15 +139,15 @@ export default function Dashboard() {
       const data = await response.json();
       console.log('Fetched analytics data:', data);
 
-      // Fetch mock Twitter data
-      const twitterResponse = await fetch('/api/twitter-analytics-mock');
+      // Fetch real Twitter data
+      const twitterResponse = await fetch('/api/twitter-analytics');
       if (!twitterResponse.ok) {
-        throw new Error('Failed to fetch mock Twitter data');
+        throw new Error('Failed to fetch Twitter data');
       }
       const twitterData = await twitterResponse.json();
-      console.log('Fetched mock Twitter data:', twitterData);
+      console.log('Fetched Twitter data:', twitterData);
 
-      // Combine the analytics data with the mock Twitter data
+      // Combine the analytics data with the Twitter data
       setAnalyticsData({
         ...data,
         twitterAnalytics: twitterData.twitterAnalytics
@@ -343,6 +343,7 @@ export default function Dashboard() {
   };
 
   const renderTwitterAnalytics = () => {
+    console.log('Twitter Analytics Data:', analyticsData.twitterAnalytics);
     if (!analyticsData.twitterAnalytics || analyticsData.twitterAnalytics.length === 0) {
       return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
