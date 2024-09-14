@@ -342,29 +342,67 @@ export default function Dashboard() {
     );
   };
 
-  const renderTwitterAnalytics = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
-      {analyticsData.twitterAnalytics && analyticsData.twitterAnalytics.length > 0 ? (
-        <ul>
-          {analyticsData.twitterAnalytics.map((tweet, index) => (
-            <li key={index} className="mb-4 border-b pb-2">
-              <p className="font-semibold">{new Date(tweet.created_at).toLocaleString()}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{tweet.text}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <p>Impressions: {tweet.impressions}</p>
-                <p>Likes: {tweet.likes}</p>
-                <p>Retweets: {tweet.retweets}</p>
-                <p>Replies: {tweet.replies}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No Twitter data available for the selected period.</p>
-      )}
-    </div>
-  );
+  const renderTwitterAnalytics = () => {
+    if (!analyticsData.twitterAnalytics || analyticsData.twitterAnalytics.length === 0) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
+          <p className="text-gray-500 dark:text-gray-400">No Twitter data available for the selected period.</p>
+        </div>
+      );
+    }
+
+    const twitterChartData = {
+      labels: analyticsData.twitterAnalytics.map(tweet => new Date(tweet.created_at).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Impressions',
+          data: analyticsData.twitterAnalytics.map(tweet => tweet.impressions),
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          tension: 0.1
+        }
+      ]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: 'Twitter Impressions Over Time'
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Impressions'
+          },
+          beginAtZero: true
+        }
+      }
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
+        <div style={{ height: '400px' }}>
+          <Line data={twitterChartData} options={options} />
+        </div>
+      </div>
+    );
+  };
 
   const onDragEnd = (result) => {
     if (!result.destination) {
