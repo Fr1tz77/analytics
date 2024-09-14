@@ -137,7 +137,7 @@ export default function Dashboard() {
         throw new Error('Failed to fetch analytics data');
       }
       const data = await response.json();
-      console.log('Fetched data:', data);  // Add this line
+      console.log('Fetched analytics data:', data);
       setAnalyticsData(data);
       setError(null);
     } catch (error) {

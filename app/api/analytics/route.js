@@ -95,12 +95,15 @@ export async function GET(req) {
     const funnelData = await getFunnelData(db, funnelSteps, startDate, endDate);
 
     // Fetch Twitter analytics data
+    console.log('Fetching Twitter analytics data');
     const twitterAnalytics = await db.collection("twitter_analytics")
       .find({
         date: { $gte: startDate, $lte: endDate }
       })
       .sort({ date: 1 })
       .toArray();
+
+    console.log('Fetched Twitter analytics:', twitterAnalytics);
 
     const result = { 
       events, 
