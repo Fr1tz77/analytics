@@ -356,8 +356,8 @@ export default function Dashboard() {
       labels: analyticsData.twitterAnalytics.map(tweet => new Date(tweet.created_at).toLocaleDateString()),
       datasets: [
         {
-          label: 'Impressions',
-          data: analyticsData.twitterAnalytics.map(tweet => tweet.impressions),
+          label: 'Likes',
+          data: analyticsData.twitterAnalytics.map(tweet => tweet.likes),
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.5)',
           tension: 0.1
@@ -374,7 +374,7 @@ export default function Dashboard() {
         },
         title: {
           display: true,
-          text: 'Twitter Impressions Over Time'
+          text: 'Twitter Likes Over Time'
         }
       },
       scales: {
@@ -387,7 +387,7 @@ export default function Dashboard() {
         y: {
           title: {
             display: true,
-            text: 'Impressions'
+            text: 'Likes'
           },
           beginAtZero: true
         }
