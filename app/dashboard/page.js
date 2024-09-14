@@ -138,11 +138,24 @@ export default function Dashboard() {
       }
       const data = await response.json();
       console.log('Fetched analytics data:', data);
-      setAnalyticsData(data);
+
+      // Fetch mock Twitter data
+      const twitterResponse = await fetch('/api/twitter-analytics-mock');
+      if (!twitterResponse.ok) {
+        throw new Error('Failed to fetch mock Twitter data');
+      }
+      const twitterData = await twitterResponse.json();
+      console.log('Fetched mock Twitter data:', twitterData);
+
+      // Combine the analytics data with the mock Twitter data
+      setAnalyticsData({
+        ...data,
+        twitterAnalytics: twitterData.twitterAnalytics
+      });
       setError(null);
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
-      setError('Failed to fetch analytics data. Please try again later.');
+      console.error('Error fetching data:', error);
+      setError('Failed to fetch data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -334,13 +347,16 @@ export default function Dashboard() {
       <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
       {analyticsData.twitterAnalytics && analyticsData.twitterAnalytics.length > 0 ? (
         <ul>
-          {analyticsData.twitterAnalytics.map((data, index) => (
-            <li key={index} className="mb-2">
-              <p>Date: {new Date(data.date).toLocaleDateString()}</p>
-              <p>Impressions: {data.data.impressions}</p>
-              <p>Likes: {data.data.likes}</p>
-              <p>Retweets: {data.data.retweets}</p>
-              <p>Replies: {data.data.replies}</p>
+          {analyticsData.twitterAnalytics.map((tweet, index) => (
+            <li key={index} className="mb-4 border-b pb-2">
+              <p className="font-semibold">{new Date(tweet.created_at).toLocaleString()}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{tweet.text}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <p>Impressions: {tweet.impressions}</p>
+                <p>Likes: {tweet.likes}</p>
+                <p>Retweets: {tweet.retweets}</p>
+                <p>Replies: {tweet.replies}</p>
+              </div>
             </li>
           ))}
         </ul>
