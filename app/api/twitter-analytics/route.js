@@ -3,8 +3,8 @@ import clientPromise from '../../../lib/mongodb';
 import Twitter from 'twitter-lite';
 
 const client = new Twitter({
-  subdomain: "api", // "api" is the default (change for other subdomains)
-  version: "2", // version "1.1" is the default (change for other subdomains)
+  subdomain: "api",
+  version: "2",
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
   consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
   access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
@@ -13,18 +13,21 @@ const client = new Twitter({
 
 export async function GET(req) {
   try {
-    const { searchParams } = new URL(req.url);
-    const startDate = searchParams.get('start');
-    const endDate = searchParams.get('end');
+    const endDate = new Date().toISOString();
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days ago
 
-    console.log(`Received request for Twitter analytics from ${startDate} to ${endDate}`);
+    console.log(`Using date range: ${startDate} to ${endDate}`);
+    console.log('Twitter API credentials:', {
+      consumer_key: process.env.TWITTER_CONSUMER_KEY ? 'Set' : 'Not set',
+      consumer_secret: process.env.TWITTER_CONSUMER_SECRET ? 'Set' : 'Not set',
+      access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY ? 'Set' : 'Not set',
+      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET ? 'Set' : 'Not set'
+    });
 
-    // Fetch Twitter analytics data
     const twitterData = await fetchTwitterAnalytics(startDate, endDate);
 
     console.log('Fetched Twitter data:', twitterData);
 
-    // Store the data in MongoDB
     const mongoClient = await clientPromise;
     const db = mongoClient.db("analytics");
     const result = await db.collection("twitter_analytics").insertOne({
@@ -45,23 +48,26 @@ async function fetchTwitterAnalytics(startDate, endDate) {
   console.log(`Fetching Twitter analytics from ${startDate} to ${endDate}`);
   
   try {
-    // Fetch user's tweets within the date range
+    // Verify credentials
+    const user = await client.get('users/me');
+    console.log('Current user:', user);
+
+    // Fetch user's tweets
     const tweets = await client.get('tweets/search/recent', {
-      query: 'from:your_twitter_username',
-      start_time: new Date(startDate).toISOString(),
-      end_time: new Date(endDate).toISOString(),
+      query: `from:${process.env.TWITTER_USER_ID}`,
+      start_time: startDate,
+      end_time: endDate,
       max_results: 100,
       'tweet.fields': 'public_metrics,created_at'
     });
 
-    console.log('Twitter API response:', tweets);
+    console.log('Twitter API response:', JSON.stringify(tweets, null, 2));
 
     if (!tweets.data || tweets.data.length === 0) {
       console.log('No tweets found in the specified date range');
       return [];
     }
 
-    // Process and return the analytics data for each tweet
     return tweets.data.map(tweet => ({
       id: tweet.id,
       created_at: tweet.created_at,
@@ -72,7 +78,7 @@ async function fetchTwitterAnalytics(startDate, endDate) {
       replies: tweet.public_metrics.reply_count
     }));
   } catch (error) {
-    console.error('Error fetching Twitter data:', error.errors || error);
+    console.error('Error fetching Twitter data:', JSON.stringify(error.errors || error, null, 2));
     throw error;
   }
 }
