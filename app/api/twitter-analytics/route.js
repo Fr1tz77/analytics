@@ -36,8 +36,8 @@ export async function GET(req) {
 
     return NextResponse.json({ twitterAnalytics: twitterData });
   } catch (error) {
-    console.error('Error in Twitter analytics GET route:', error);
-    return NextResponse.json({ error: 'Failed to fetch Twitter analytics' }, { status: 500 });
+    console.error('Error in Twitter analytics GET route:', error.errors || error);
+    return NextResponse.json({ error: 'Failed to fetch Twitter analytics', details: error.errors || error.message }, { status: 500 });
   }
 }
 
@@ -45,24 +45,34 @@ async function fetchTwitterAnalytics(startDate, endDate) {
   console.log(`Fetching Twitter analytics from ${startDate} to ${endDate}`);
   
   try {
-    // Example: Fetching tweet metrics for a specific tweet
-    const tweetId = '1234567890'; // Replace with your actual tweet ID
-    console.log(`Fetching metrics for tweet ID: ${tweetId}`);
-    
-    const response = await client.get(`tweets/${tweetId}`, {
-      "tweet.fields": "public_metrics"
+    // Fetch user's tweets within the date range
+    const tweets = await client.get('tweets/search/recent', {
+      query: 'from:your_twitter_username',
+      start_time: new Date(startDate).toISOString(),
+      end_time: new Date(endDate).toISOString(),
+      max_results: 100,
+      'tweet.fields': 'public_metrics,created_at'
     });
-    
-    console.log('Twitter API response:', response);
 
-    return {
-      impressions: response.data.public_metrics.impression_count,
-      likes: response.data.public_metrics.like_count,
-      retweets: response.data.public_metrics.retweet_count,
-      replies: response.data.public_metrics.reply_count
-    };
+    console.log('Twitter API response:', tweets);
+
+    if (!tweets.data || tweets.data.length === 0) {
+      console.log('No tweets found in the specified date range');
+      return [];
+    }
+
+    // Process and return the analytics data for each tweet
+    return tweets.data.map(tweet => ({
+      id: tweet.id,
+      created_at: tweet.created_at,
+      text: tweet.text,
+      impressions: tweet.public_metrics.impression_count,
+      likes: tweet.public_metrics.like_count,
+      retweets: tweet.public_metrics.retweet_count,
+      replies: tweet.public_metrics.reply_count
+    }));
   } catch (error) {
-    console.error('Error fetching Twitter data:', error);
+    console.error('Error fetching Twitter data:', error.errors || error);
     throw error;
   }
 }
