@@ -2,18 +2,24 @@ import { NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
 import axios from 'axios';
 
-const API_BASE_URL = 'https://api.twitter.com/2'; // Replace with the actual base URL
+const API_BASE_URL = 'https://api.twitter.com/2'; // Make sure this is correct
 
 async function getAccessToken() {
   try {
-    const response = await axios.post(`${API_BASE_URL}/oauth2/token`, {
-      grant_type: 'client_credentials',
-    }, {
-      auth: {
-        username: process.env.TWITTER_CONSUMER_KEY,
-        password: process.env.TWITTER_CONSUMER_SECRET,
-      },
-    });
+    console.log('Attempting to get access token...');
+    const response = await axios.post(`${API_BASE_URL}/oauth2/token`, 
+      'grant_type=client_credentials',
+      {
+        auth: {
+          username: process.env.TWITTER_CONSUMER_KEY,
+          password: process.env.TWITTER_CONSUMER_SECRET,
+        },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+    console.log('Access token response:', response.data);
     return response.data.access_token;
   } catch (error) {
     console.error('Error getting access token:', error.response?.data || error.message);
@@ -23,10 +29,12 @@ async function getAccessToken() {
 
 async function getBusinessUnits(token) {
   try {
-    const response = await axios.get(`${API_BASE_URL}/business_units`, {
+    console.log('Attempting to get business units...');
+    const response = await axios.get(`${API_BASE_URL}/users/${process.env.TWITTER_USER_ID}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    console.log('Business units response:', response.data);
+    return [{ id: process.env.TWITTER_USER_ID }]; // Return user ID as business unit for now
   } catch (error) {
     console.error('Error getting business units:', error.response?.data || error.message);
     throw error;
@@ -35,10 +43,19 @@ async function getBusinessUnits(token) {
 
 async function getEnterpriseReport(token, businessUnitId) {
   try {
-    const response = await axios.get(`${API_BASE_URL}/enterprise/latest_report`, {
+    console.log('Attempting to get enterprise report...');
+    const endDate = new Date().toISOString();
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const response = await axios.get(`${API_BASE_URL}/users/${businessUnitId}/tweets`, {
       headers: { Authorization: `Bearer ${token}` },
-      params: { business_unit_id: businessUnitId },
+      params: {
+        'tweet.fields': 'public_metrics,created_at',
+        'max_results': 100,
+        'start_time': startDate,
+        'end_time': endDate
+      }
     });
+    console.log('Enterprise report response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error getting enterprise report:', error.response?.data || error.message);
@@ -54,22 +71,21 @@ export async function GET(req) {
     const accessToken = await getAccessToken();
     console.log('Access token obtained');
 
-    // Step 2: Get business units
+    // Step 2: Get business units (user info in this case)
     const businessUnits = await getBusinessUnits(accessToken);
     console.log('Business units:', businessUnits);
 
-    // Assuming we want the first business unit, adjust as needed
     const businessUnitId = businessUnits[0]?.id;
 
     if (!businessUnitId) {
       throw new Error('No business unit found');
     }
 
-    // Step 3: Get enterprise report
+    // Step 3: Get enterprise report (user tweets in this case)
     const report = await getEnterpriseReport(accessToken, businessUnitId);
     console.log('Enterprise report:', JSON.stringify(report, null, 2));
 
-    // Process the report data as needed
+    // Process the report data
     const twitterData = processReportData(report);
 
     // Store in MongoDB
@@ -90,18 +106,18 @@ export async function GET(req) {
 }
 
 function processReportData(report) {
-  // Process the report data to extract relevant information
-  // This function should be implemented based on the structure of the enterprise report
-  // For now, we'll return a placeholder
-  return [
-    {
-      id: 'placeholder',
-      created_at: new Date().toISOString(),
-      text: 'Placeholder tweet',
-      impressions: 0,
-      likes: 0,
-      retweets: 0,
-      replies: 0
-    }
-  ];
+  if (!report.data || report.data.length === 0) {
+    console.log('No tweet data found in the report');
+    return [];
+  }
+
+  return report.data.map(tweet => ({
+    id: tweet.id,
+    created_at: tweet.created_at,
+    text: tweet.text,
+    impressions: tweet.public_metrics.impression_count,
+    likes: tweet.public_metrics.like_count,
+    retweets: tweet.public_metrics.retweet_count,
+    replies: tweet.public_metrics.reply_count
+  }));
 }
