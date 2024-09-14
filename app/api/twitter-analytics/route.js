@@ -25,11 +25,13 @@ export async function GET(req) {
       user_id: process.env.TWITTER_USER_ID
     });
 
+    console.log('Fetching Twitter analytics...');
     const twitterData = await fetchTwitterAnalytics(startDate, endDate);
 
-    console.log('Fetched Twitter data:', twitterData);
+    console.log('Fetched Twitter data:', JSON.stringify(twitterData, null, 2));
 
     if (twitterData.length === 0) {
+      console.log('No Twitter data found for the specified period');
       return NextResponse.json({ twitterAnalytics: [], message: 'No Twitter data found for the specified period' });
     }
 
@@ -44,8 +46,8 @@ export async function GET(req) {
 
     return NextResponse.json({ twitterAnalytics: twitterData });
   } catch (error) {
-    console.error('Error in Twitter analytics GET route:', error.errors || error);
-    return NextResponse.json({ error: 'Failed to fetch Twitter analytics', details: error.errors || error.message }, { status: 500 });
+    console.error('Error in Twitter analytics GET route:', JSON.stringify(error, null, 2));
+    return NextResponse.json({ error: 'Failed to fetch Twitter analytics', details: error.message || 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -54,10 +56,12 @@ async function fetchTwitterAnalytics(startDate, endDate) {
   
   try {
     // Verify credentials
+    console.log('Verifying Twitter credentials...');
     const user = await client.get('users/me');
     console.log('Current user:', JSON.stringify(user, null, 2));
 
     // Fetch user's tweets
+    console.log(`Fetching tweets for user ID: ${process.env.TWITTER_USER_ID}`);
     const tweets = await client.get('tweets/search/recent', {
       query: `from:${process.env.TWITTER_USER_ID}`,
       start_time: startDate,
@@ -83,9 +87,12 @@ async function fetchTwitterAnalytics(startDate, endDate) {
       replies: tweet.public_metrics.reply_count
     }));
   } catch (error) {
-    console.error('Error fetching Twitter data:', JSON.stringify(error.errors || error, null, 2));
+    console.error('Error fetching Twitter data:', JSON.stringify(error, null, 2));
     if (error.errors) {
       error.errors.forEach(e => console.error(`Twitter API Error: ${e.code} - ${e.message}`));
+    }
+    if (error.data) {
+      console.error('Twitter API Error Data:', JSON.stringify(error.data, null, 2));
     }
     throw error;
   }
