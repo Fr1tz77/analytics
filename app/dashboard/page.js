@@ -135,8 +135,10 @@ export default function Dashboard() {
       const currentPeriodStart = startDate.toISOString();
       const currentPeriodEnd = endDate.toISOString();
       const duration = moment(endDate).diff(moment(startDate), 'days');
-      const previousPeriodStart = moment(startDate).subtract(duration, 'days').toISOString();
-      const previousPeriodEnd = moment(endDate).subtract(duration, 'days').toISOString();
+      
+      // Adjust for daily comparison
+      const previousPeriodStart = moment(startDate).subtract(duration + 1, 'days').toISOString();
+      const previousPeriodEnd = moment(endDate).subtract(duration + 1, 'days').toISOString();
 
       const [currentResponse, previousResponse] = await Promise.all([
         fetch(`/api/analytics?start=${currentPeriodStart}&end=${currentPeriodEnd}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`),
@@ -192,6 +194,12 @@ export default function Dashboard() {
   const calculateTrend = () => {
     const currentSum = analyticsData.events?.reduce((sum, item) => sum + item[selectedMetric], 0) || 0;
     const previousSum = comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0);
+    
+    // Avoid division by zero
+    if (previousSum === 0) {
+      return currentSum > 0 ? 100 : 0; // 100% increase if previous was 0, 0% if both are 0
+    }
+    
     const trend = ((currentSum - previousSum) / previousSum) * 100;
     return trend.toFixed(2);
   };
