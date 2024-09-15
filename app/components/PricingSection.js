@@ -5,7 +5,7 @@ const plans = [
     name: 'Get Started Free',
     price: '$0',
     features: [
-      'Up to 1,000 clicks',
+      'Up to 1,000 clicks / month',
       '1 website',
       'Basic analytics',
     ],
@@ -14,9 +14,9 @@ const plans = [
   },
   {
     name: 'Growth',
-    price: '$29',
+    price: '$4',
     features: [
-      'Up to 10,000 clicks',
+      'Up to 10,000 clicks / month',
       '3 websites',
       'Advanced analytics',
       'Priority support',
@@ -28,7 +28,7 @@ const plans = [
     name: 'Pro',
     price: '$79',
     features: [
-      'Unlimited clicks',
+      'Up to 500,000 clicks / month',
       '10 websites',
       'Advanced analytics',
       'Priority support',
