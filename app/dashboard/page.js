@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ProtectedPage from "../components/ProtectedPage";
@@ -20,7 +20,7 @@ const DragDropContext = dynamic(() => import('react-beautiful-dnd').then(mod => 
 const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Droppable), { ssr: false });
 const Draggable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Draggable), { ssr: false });
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 function getCountryFlagEmoji(countryCode) {
   const codePoints = countryCode
@@ -93,6 +93,7 @@ export default function Dashboard() {
   ]);
   const router = useRouter();
   const [timeZone, setTimeZone] = useState('UTC');
+  const [comparisonData, setComparisonData] = useState([]);
 
   useEffect(() => {
     // Set default time zone to user's local time zone
@@ -131,27 +132,26 @@ export default function Dashboard() {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      console.log(`Fetching data from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      const response = await fetch(`/api/analytics?start=${startDate.toISOString()}&end=${endDate.toISOString()}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`);
-      if (!response.ok) {
+      const currentPeriodStart = startDate.toISOString();
+      const currentPeriodEnd = endDate.toISOString();
+      const duration = moment(endDate).diff(moment(startDate), 'days');
+      const previousPeriodStart = moment(startDate).subtract(duration, 'days').toISOString();
+      const previousPeriodEnd = moment(endDate).subtract(duration, 'days').toISOString();
+
+      const [currentResponse, previousResponse] = await Promise.all([
+        fetch(`/api/analytics?start=${currentPeriodStart}&end=${currentPeriodEnd}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`),
+        fetch(`/api/analytics?start=${previousPeriodStart}&end=${previousPeriodEnd}&metric=${selectedMetric}&interval=${timeInterval}&timeZone=${timeZone}`)
+      ]);
+
+      if (!currentResponse.ok || !previousResponse.ok) {
         throw new Error('Failed to fetch analytics data');
       }
-      const data = await response.json();
-      console.log('Fetched analytics data:', data);
 
-      // Fetch mock Twitter data
-      const twitterResponse = await fetch('/api/twitter-analytics');
-      if (!twitterResponse.ok) {
-        throw new Error('Failed to fetch Twitter data');
-      }
-      const twitterData = await twitterResponse.json();
-      console.log('Fetched Twitter data:', twitterData);
+      const currentData = await currentResponse.json();
+      const previousData = await previousResponse.json();
 
-      // Combine the analytics data with the Twitter data
-      setAnalyticsData({
-        ...data,
-        twitterAnalytics: twitterData.twitterAnalytics
-      });
+      setAnalyticsData(currentData);
+      setComparisonData(previousData.events || []);
       setError(null);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -171,22 +171,29 @@ export default function Dashboard() {
     labels: analyticsData.events?.map(item => formatChartLabel(item.date, timeInterval, timeZone)) || [],
     datasets: [
       {
-        label: selectedMetric === 'avgDuration' 
-          ? 'Average Duration (minutes)' 
-          : selectedMetric === 'bounceRate'
-            ? 'Bounce Rate (%)'
-            : selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1),
-        data: analyticsData.events?.map(item => 
-          selectedMetric === 'avgDuration'
-            ? Number((item[selectedMetric] / 60000).toFixed(2)) // Convert ms to minutes
-            : selectedMetric === 'bounceRate'
-              ? Number(item[selectedMetric].toFixed(2)) // Round to 2 decimal places
-              : item[selectedMetric]
-        ) || [],
+        label: `Current ${selectedMetric}`,
+        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
         borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: `Previous ${selectedMetric}`,
+        data: comparisonData.map(item => item[selectedMetric]),
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        fill: true,
+        tension: 0.4
       }
     ]
+  };
+
+  const calculateTrend = () => {
+    const currentSum = analyticsData.events?.reduce((sum, item) => sum + item[selectedMetric], 0) || 0;
+    const previousSum = comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0);
+    const trend = ((currentSum - previousSum) / previousSum) * 100;
+    return trend.toFixed(2);
   };
 
   const options = {
@@ -198,24 +205,39 @@ export default function Dashboard() {
       },
       title: {
         display: true,
-        text: `${selectedMetric === 'avgDuration' 
-          ? 'Average Duration (minutes)' 
-          : selectedMetric === 'bounceRate'
-            ? 'Bounce Rate (%)'
-            : selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
+        text: `${selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Over Time`,
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
       },
       tooltip: {
+        mode: 'index',
+        intersect: false,
         callbacks: {
           title: (context) => {
             const index = context[0].dataIndex;
-            const originalDate = analyticsData.events[index].date;
+            const originalDate = analyticsData.events[index]?.date || comparisonData[index]?.date;
             return moment.tz(originalDate, timeZone).format('YYYY-MM-DD HH:mm');
+          },
+          label: (context) => {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += formatMetricValue(context.parsed.y, selectedMetric);
+            }
+            return label;
           }
         }
       }
     },
     scales: {
       x: {
+        grid: {
+          display: false
+        },
         ticks: {
           maxRotation: 0,
           autoSkip: true,
@@ -225,17 +247,26 @@ export default function Dashboard() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function(value, index, values) {
-            if (selectedMetric === 'avgDuration') {
-              return value.toFixed(2) + 'm';
-            } else if (selectedMetric === 'bounceRate') {
-              return value.toFixed(2) + '%';
-            }
-            return value;
+          callback: function(value) {
+            return formatMetricValue(value, selectedMetric);
           }
         }
       }
+    },
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
     }
+  };
+
+  const formatMetricValue = (value, metric) => {
+    if (metric === 'avgDuration') {
+      return (value / 60000).toFixed(2) + 'm';
+    } else if (metric === 'bounceRate') {
+      return value.toFixed(2) + '%';
+    }
+    return value.toLocaleString();
   };
 
   const renderSection = (title, content, className = '') => (
@@ -438,16 +469,27 @@ export default function Dashboard() {
 
     switch (widget.id) {
       case 'chart':
+        const trend = calculateTrend();
         return renderSection(widget.title, 
           <div className="w-full h-96 px-4">
             {loading ? (
-              <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              </div>
             ) : error ? (
-              <p className="text-red-500">{error}</p>
+              <p className="text-red-500 text-center">{error}</p>
             ) : analyticsData.events && analyticsData.events.length > 0 ? (
-              <Line options={options} data={chartData} />
+              <>
+                <Line options={options} data={chartData} />
+                <div className="mt-4 text-center">
+                  <span className={`font-bold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
+                  </span>
+                  <span className="ml-2">compared to previous period</span>
+                </div>
+              </>
             ) : (
-              <p className="text-gray-500 dark:text-gray-400">No data available for the selected period.</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center">No data available for the selected period.</p>
             )}
           </div>
         , widgetClass);
