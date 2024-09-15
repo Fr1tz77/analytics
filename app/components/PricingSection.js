@@ -26,9 +26,9 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '$79',
+    price: '$29',
     features: [
-      'Up to 500,000 clicks / month',
+      'Up to 300,000 clicks / month',
       '10 websites',
       'Advanced analytics',
       'Priority support',
