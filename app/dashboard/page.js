@@ -489,11 +489,11 @@ export default function Dashboard() {
             ) : analyticsData.events && analyticsData.events.length > 0 ? (
               <>
                 <Line options={options} data={chartData} />
-                <div className="mt-4 text-center">
+                <div className="mt-2 text-center text-sm">
                   <span className={`font-bold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
                   </span>
-                  <span className="ml-2">compared to previous period</span>
+                  <span className="ml-1 text-gray-600 dark:text-gray-400">compared to previous period</span>
                 </div>
               </>
             ) : (
