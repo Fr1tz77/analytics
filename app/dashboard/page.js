@@ -479,7 +479,7 @@ export default function Dashboard() {
       case 'chart':
         const trend = calculateTrend();
         return renderSection(widget.title, 
-          <div className="w-full h-64 px-4">
+          <div className="w-full h-108 px-4">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
