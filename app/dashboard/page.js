@@ -183,7 +183,7 @@ export default function Dashboard() {
       {
         label: `Previous ${selectedMetric}`,
         data: comparisonData.map(item => item[selectedMetric]),
-        borderColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgba(254, 120, 149, 0.644)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         fill: true,
         tension: 0.4
