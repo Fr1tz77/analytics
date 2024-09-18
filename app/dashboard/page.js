@@ -82,7 +82,7 @@ export default function Dashboard() {
   const [importedData, setImportedData] = useState(null);
   const fileInputRef = useRef(null);
   const [dashboardLayout, setDashboardLayout] = useState([
-    { id: 'chart', title: 'Analytics Over Time' },
+    { id: 'chart', title: '' },
     { id: 'topSources', title: 'Top Sources' },
     { id: 'topPages', title: 'Top Pages' },
     { id: 'countries', title: 'Visitors by Country' },
