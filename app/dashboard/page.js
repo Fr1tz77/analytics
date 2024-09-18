@@ -173,7 +173,7 @@ export default function Dashboard() {
     labels: analyticsData.events?.map(item => formatChartLabel(item.date, timeInterval, timeZone)) || [],
     datasets: [
       {
-        label: `Current ${selectedMetric}`,
+        label: 'Current',
         data: analyticsData.events?.map(item => item[selectedMetric]) || [],
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -181,7 +181,7 @@ export default function Dashboard() {
         tension: 0.4
       },
       {
-        label: `Previous ${selectedMetric}`,
+        label: 'Previous',
         data: comparisonData.map(item => item[selectedMetric]),
         borderColor: 'rgba(254, 120, 149, 0.644)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
