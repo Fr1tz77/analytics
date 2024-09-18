@@ -479,7 +479,7 @@ export default function Dashboard() {
       case 'chart':
         const trend = calculateTrend();
         return renderSection(widget.title, 
-          <div className="w-full h-96 px-4">
+          <div className="w-full h-64 px-4">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -489,7 +489,7 @@ export default function Dashboard() {
             ) : analyticsData.events && analyticsData.events.length > 0 ? (
               <>
                 <Line options={options} data={chartData} />
-                <div className="mt-2 text-center text-sm">
+                <div className="mt-1 text-center text-sm">
                   <span className={`font-bold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
                   </span>
