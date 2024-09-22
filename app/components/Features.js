@@ -36,6 +36,7 @@ export default function Features() {
               <feature.icon className="h-12 w-12 text-blue-600 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.name}</h3>
               <p className="text-gray-600">{feature.description}</p>
+              <p className="text-sm text-blue-500 mt-2">Why this matters: Drive faster decision making with real-time data.</p>
             </div>
           ))}
         </div>

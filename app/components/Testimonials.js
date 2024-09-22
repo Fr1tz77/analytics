@@ -1,46 +1,29 @@
 import Image from 'next/image';
 
-const testimonials = [
-  {
-    content: "Analytics Pro has transformed how we understand our users. The insights we've gained have directly contributed to a 40% increase in our conversion rates.",
-    author: "Jane Doe",
-    role: "CEO, TechStart Inc.",
-    image: "/testimonial-1.jpg"
-  },
-  {
-    content: "The real-time data and custom reports have become indispensable for our marketing team. We can now make data-driven decisions faster than ever.",
-    author: "John Smith",
-    role: "CMO, GrowthGenius",
-    image: "/testimonial-2.jpg"
-  },
-];
-
 export default function Testimonials() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-blue-700 text-white">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-100">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-center mb-12">
-          Trusted by Industry Leaders
+        <h2 className="text-3xl font-extrabold text-gray-900 text-center mb-12">
+          What Our Customers Are Saying
         </h2>
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="bg-blue-800 rounded-lg p-8 shadow-lg">
-              <p className="text-lg mb-6">"{testimonial.content}"</p>
-              <div className="flex items-center">
-                <Image 
-                  src={testimonial.image} 
-                  alt={testimonial.author} 
-                  width={48} 
-                  height={48} 
-                  className="rounded-full mr-4"
-                />
-                <div>
-                  <p className="font-semibold">{testimonial.author}</p>
-                  <p className="text-blue-300">{testimonial.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <Image src="/customer1.jpg" alt="Customer testimonial" width={150} height={150} className="rounded-full mx-auto mb-4" />
+            <blockquote className="text-gray-700 italic">"Analytics Pro transformed our business. The real-time data is a game changer!"</blockquote>
+            <p className="text-sm font-bold mt-4">— John Doe, CEO of Example Corp</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <Image src="/customer2.jpg" alt="Customer testimonial" width={150} height={150} className="rounded-full mx-auto mb-4" />
+            <blockquote className="text-gray-700 italic">"We&apos;ve seen a 30% increase in conversions thanks to Analytics Pro."</blockquote>
+            <p className="text-sm font-bold mt-4">— Jane Smith, Marketing Director at Example Inc.</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <video controls className="w-full h-auto rounded-lg shadow-lg" loading="lazy">
+              <source src="/testimonial-video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
         </div>
       </div>
     </section>

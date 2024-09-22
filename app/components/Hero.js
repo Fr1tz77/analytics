@@ -13,10 +13,10 @@ export default function Hero() {
             Analytics Pro provides deep insights into your website's performance, helping you make data-driven decisions to grow your business.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link href="/signup" className="btn btn-primary">
+            <Link href="/signup" className="btn btn-primary transform hover:scale-105 transition duration-300">
               Start Free Trial
             </Link>
-            <Link href="#demo" className="btn btn-secondary">
+            <Link href="#demo" className="btn btn-secondary transform hover:scale-105 transition duration-300">
               Watch Demo
             </Link>
           </div>
@@ -28,6 +28,7 @@ export default function Hero() {
             width={600} 
             height={400} 
             className="rounded-lg shadow-2xl"
+            loading="lazy"
           />
         </div>
       </div>
