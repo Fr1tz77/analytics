@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import AnalyticsChart from './path/to/AnalyticsChart'; // Ensure this is correct
 
 export default function WidgetRenderer({
   widget,
@@ -11,13 +12,25 @@ export default function WidgetRenderer({
   loading,
   error
 }) {
+  // Check if renderSection is a function
+  if (typeof renderSection !== 'function') {
+    console.error('renderSection is not defined or is not a function');
+  }
+
+  // Validate widget object
+  console.log('Widget:', widget);
+  if (!widget || !widget.id) {
+    console.error('Widget is missing or invalid:', widget);
+    return null; // or some fallback UI
+  }
+
   const calculateTrend = () => {
-    const currentSum = Array.isArray(analyticsData.events) 
-        ? analyticsData.events.reduce((sum, item) => sum + item[selectedMetric], 0) || 0 
+    const currentSum = Array.isArray(analyticsData.events)
+        ? analyticsData.events.reduce((sum, item) => sum + item[selectedMetric], 0) || 0
         : 0;
 
-    const previousSum = comparisonData && comparisonData.length > 0 
-        ? comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0) 
+    const previousSum = comparisonData && comparisonData.length > 0
+        ? comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0)
         : 0;
 
     if (previousSum === 0) {
