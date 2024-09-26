@@ -96,7 +96,7 @@ export default function Dashboard() {
   const [comparisonData, setComparisonData] = useState([]);
 
   useEffect(() => {
-    // Set default time zone to user's local time zone
+    // Set default time zone to user's local time zon
     setTimeZone(moment.tz.guess());
   }, []);
 
