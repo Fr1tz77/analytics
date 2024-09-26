@@ -1,3 +1,5 @@
+'use client'; // Add this at the top of the file
+
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import moment from 'moment-timezone';
