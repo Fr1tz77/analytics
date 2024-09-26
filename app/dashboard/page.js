@@ -170,6 +170,28 @@ export default function Dashboard() {
     setTimeInterval(interval);
   };
 
+  const chartData = {
+    labels: analyticsData.events?.map(item => formatChartLabel(item.date, timeInterval, timeZone)) || [],
+    datasets: [
+      {
+        label: 'Current   ',
+        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Previous',
+        data: comparisonData.map(item => item[selectedMetric]),
+        borderColor: 'rgba(245, 165, 153, 0.582)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  };
+
   const calculateTrend = () => {
     const currentSum = analyticsData.events?.reduce((sum, item) => sum + item[selectedMetric], 0) || 0;
     const previousSum = comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0);
