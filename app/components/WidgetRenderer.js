@@ -1,16 +1,37 @@
-// components/WidgetRenderer.js
-export default function WidgetRenderer({ widget, renderSection, analyticsData, comparisonData, selectedMetric, timeInterval, timeZone, loading, error }) {
+import { useMemo } from 'react';
+
+export default function WidgetRenderer({
+  widget,
+  renderSection,
+  analyticsData,
+  comparisonData,
+  selectedMetric,
+  timeInterval,
+  timeZone,
+  loading,
+  error
+}) {
   const calculateTrend = () => {
-    const currentSum = analyticsData.events?.reduce((sum, item) => sum + item[selectedMetric], 0) || 0;
-    const previousSum = comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0);
+    const currentSum = Array.isArray(analyticsData.events) 
+        ? analyticsData.events.reduce((sum, item) => sum + item[selectedMetric], 0) || 0 
+        : 0;
+
+    const previousSum = comparisonData && comparisonData.length > 0 
+        ? comparisonData.reduce((sum, item) => sum + item[selectedMetric], 0) 
+        : 0;
+
     if (previousSum === 0) {
       return currentSum > 0 ? 100 : 0;
     }
+
     const trend = ((currentSum - previousSum) / previousSum) * 100;
     return trend.toFixed(2);
   };
 
-  const trend = calculateTrend();
+  const trend = useMemo(() => calculateTrend(), [analyticsData, comparisonData, selectedMetric]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error loading data</div>;
 
   switch (widget.id) {
     case 'chart':
@@ -31,8 +52,7 @@ export default function WidgetRenderer({ widget, renderSection, analyticsData, c
           </div>
         </div>
       ));
-    // Handle other widgets similarly...
     default:
-      return null;
+      return <div className="text-center text-gray-600">Widget type not supported.</div>;
   }
 }
