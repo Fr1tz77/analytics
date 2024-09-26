@@ -43,7 +43,7 @@ function getCountryCode(countryName) {
     'India': 'IN',
     'Brazil': 'BR',
     'Unknown': 'UN',
-    // Add more mappings as needed
+    // Add more mappings as need
   };
   return countryCodes[countryName] || countryName.slice(0, 2).toUpperCase();
 }
