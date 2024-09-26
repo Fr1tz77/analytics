@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import AnalyticsChart from './path/to/AnalyticsChart'; // Ensure this is correct
 
 export default function WidgetRenderer({
   widget,
@@ -18,7 +17,6 @@ export default function WidgetRenderer({
   }
 
   // Validate widget object
-  console.log('Widget:', widget);
   if (!widget || !widget.id) {
     console.error('Widget is missing or invalid:', widget);
     return null; // or some fallback UI
@@ -50,13 +48,9 @@ export default function WidgetRenderer({
     case 'chart':
       return renderSection(widget.title, (
         <div className="w-full h-96 px-4">
-          <AnalyticsChart
-            analyticsData={analyticsData}
-            comparisonData={comparisonData}
-            selectedMetric={selectedMetric}
-            timeInterval={timeInterval}
-            timeZone={timeZone}
-          />
+          <div className="h-full flex items-center justify-center">
+            <span>No chart available. Please create an AnalyticsChart component.</span>
+          </div>
           <div className="mt-1 text-center text-sm">
             <span className={`font-bold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
               {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
