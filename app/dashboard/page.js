@@ -12,6 +12,7 @@ import DateRangeSelector from '../components/DateRangeSelector';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import moment from 'moment-timezone';
+import AnalyticsChart from '../components/AnalyticsChart';
 
 const D3Chart = dynamic(() => import('../components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
 const WorldMap = dynamic(() => import('../components/WorldMap'), { ssr: false });
@@ -167,28 +168,6 @@ export default function Dashboard() {
     setStartDate(start);
     setEndDate(end);
     setTimeInterval(interval);
-  };
-
-  const chartData = {
-    labels: analyticsData.events?.map(item => formatChartLabel(item.date, timeInterval, timeZone)) || [],
-    datasets: [
-      {
-        label: 'Current   ',
-        data: analyticsData.events?.map(item => item[selectedMetric]) || [],
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Previous',
-        data: comparisonData.map(item => item[selectedMetric]),
-        borderColor: 'rgba(245, 165, 153, 0.582)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
   };
 
   const calculateTrend = () => {
@@ -488,7 +467,13 @@ export default function Dashboard() {
               <p className="text-red-500 text-center">{error}</p>
             ) : analyticsData.events && analyticsData.events.length > 0 ? (
               <>
-                <Line options={options} data={chartData} />
+                <AnalyticsChart
+                  analyticsData={analyticsData}
+                  comparisonData={comparisonData}
+                  selectedMetric={selectedMetric}
+                  timeInterval={timeInterval}
+                  timeZone={timeZone}
+                />
                 <div className="mt-1 text-center text-sm">
                   <span className={`font-bold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
