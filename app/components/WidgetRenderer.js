@@ -1,5 +1,5 @@
 // components/WidgetRenderer.js
-import AnalyticsChart from './AnalyticsChart';
+import AnalyticsChart from '../components/AnalyticsChart';
 
 export default function WidgetRenderer({ widget, renderSection, analyticsData, comparisonData, selectedMetric, timeInterval, timeZone, loading, error }) {
   const calculateTrend = () => {
