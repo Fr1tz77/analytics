@@ -1,6 +1,4 @@
 // components/WidgetRenderer.js
-import AnalyticsChart from '../components/AnalyticsChart';
-
 export default function WidgetRenderer({ widget, renderSection, analyticsData, comparisonData, selectedMetric, timeInterval, timeZone, loading, error }) {
   const calculateTrend = () => {
     const currentSum = analyticsData.events?.reduce((sum, item) => sum + item[selectedMetric], 0) || 0;
