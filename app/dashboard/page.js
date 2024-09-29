@@ -13,6 +13,7 @@ import VisitorsByCountry from '../components/VisitorsByCountry';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import moment from 'moment-timezone';
+import TopSources from '../components/TopSources';
 
 const D3Chart = dynamic(() => import('../components/D3Chart').then(mod => mod.D3Chart), { ssr: false });
 const WorldMap = dynamic(() => import('../components/WorldMap'), { ssr: false });
@@ -44,9 +45,6 @@ export default function Dashboard() {
     topPages: [],
     countries: [],
     browsers: [],
-    cohortData: [],
-    funnelData: {},
-    twitterAnalytics: []
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -286,37 +284,6 @@ export default function Dashboard() {
     }
   };
 
-  const renderCohortAnalysis = (className) => (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8 overflow-x-auto ${className}`}>
-      <h2 className="text-xl font-semibold mb-4">Cohort Analysis</h2>
-      {analyticsData.cohortData && analyticsData.cohortData.length > 0 ? (
-        <table className="min-w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-2">Cohort</th>
-              {[...Array(30)].map((_, i) => (
-                <th key={i} className="px-4 py-2">Day {i}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {analyticsData.cohortData.map((cohort, index) => (
-              <tr key={index}>
-                <td className="border px-4 py-2">{cohort.cohort}</td>
-                {cohort.retentionData.map((day, dayIndex) => (
-                  <td key={dayIndex} className="border px-4 py-2">
-                    {((day.users / cohort.totalUsers) * 100).toFixed(2)}%
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No cohort data available for the selected period.</p>
-      )}
-    </div>
-  );
 
   const onDragEnd = (result) => {
     if (!result.destination) {
@@ -376,7 +343,14 @@ export default function Dashboard() {
           </div>
         , widgetClass);
       case 'topSources':
-        return renderSection(`Top Sources (${selectedMetric})`, renderList(analyticsData.topSources, 'source'), widgetClass);
+        return (
+        <TopSources 
+        sources={analyticsData.topSources} 
+        loading={loading} 
+        error={error} 
+        selectedMetric={selectedMetric} 
+      />
+    );
       case 'topPages':
         return renderSection(`Top Pages (${selectedMetric})`, renderList(analyticsData.topPages, 'page'), widgetClass);
       case 'countries':
