@@ -67,10 +67,7 @@ export default function Dashboard() {
     topSources: [],
     topPages: [],
     countries: [],
-    browsers: [],
-    cohortData: [],
-    funnelData: {},
-    twitterAnalytics: []
+    browsers: []
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,10 +82,7 @@ export default function Dashboard() {
     { id: 'topSources', title: 'Top Sources' },
     { id: 'topPages', title: 'Top Pages' },
     { id: 'countries', title: 'Visitors by Country' },
-    { id: 'browsers', title: 'Browsers' },
-    { id: 'cohortAnalysis', title: 'Cohort Analysis' },
-    { id: 'funnelAnalysis', title: 'Funnel Analysis' },
-    { id: 'twitterAnalytics', title: 'Twitter Analytics' },
+    { id: 'browsers', title: 'Browsers' }
   ]);
   const router = useRouter();
   const [timeZone, setTimeZone] = useState('UTC');
@@ -313,148 +307,6 @@ export default function Dashboard() {
     }
   };
 
-  const renderCohortAnalysis = (className) => (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8 overflow-x-auto ${className}`}>
-      <h2 className="text-xl font-semibold mb-4">Cohort Analysis</h2>
-      {analyticsData.cohortData && analyticsData.cohortData.length > 0 ? (
-        <table className="min-w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-2">Cohort</th>
-              {[...Array(30)].map((_, i) => (
-                <th key={i} className="px-4 py-2">Day {i}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {analyticsData.cohortData.map((cohort, index) => (
-              <tr key={index}>
-                <td className="border px-4 py-2">{cohort.cohort}</td>
-                {cohort.retentionData.map((day, dayIndex) => (
-                  <td key={dayIndex} className="border px-4 py-2">
-                    {((day.users / cohort.totalUsers) * 100).toFixed(2)}%
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No cohort data available for the selected period.</p>
-      )}
-    </div>
-  );
-
-  const renderFunnelAnalysis = (className) => {
-    const funnelData = analyticsData.funnelData;
-    if (!funnelData) return null;
-
-    const steps = Object.keys(funnelData);
-    const data = {
-      labels: steps,
-      datasets: [{
-        data: steps.map(step => funnelData[step]),
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1
-      }]
-    };
-
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    };
-
-    return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8 ${className}`}>
-        <h2 className="text-xl font-semibold mb-4">Funnel Analysis</h2>
-        <div className="h-96">
-          <Bar data={data} options={options} />
-        </div>
-      </div>
-    );
-  };
-
-  const renderTwitterAnalytics = () => {
-    console.log('Twitter Analytics Data:', analyticsData.twitterAnalytics);
-    if (!analyticsData.twitterAnalytics || analyticsData.twitterAnalytics.length === 0) {
-      return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
-          <p className="text-gray-500 dark:text-gray-400">No Twitter data available for the selected period.</p>
-        </div>
-      );
-    }
-
-    const twitterChartData = {
-      labels: analyticsData.twitterAnalytics.map(tweet => new Date(tweet.created_at).toLocaleDateString()),
-      datasets: [
-        {
-          label: 'Likes',
-          data: analyticsData.twitterAnalytics.map(tweet => tweet.likes),
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.5)',
-          tension: 0.1
-        }
-      ]
-    };
-
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        title: {
-          display: true,
-          text: 'Twitter Likes Over Time'
-        }
-      },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Date'
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Likes'
-          },
-          beginAtZero: true
-        }
-      }
-    };
-
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Twitter Analytics</h2>
-        <div style={{ height: '400px' }}>
-          <Line data={twitterChartData} options={options} />
-        </div>
-      </div>
-    );
-  };
-
-  const onDragEnd = (result) => {
-    if (!result.destination) {
-      return;
-    }
-
-    const items = Array.from(dashboardLayout);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setDashboardLayout(items);
-  };
-
   const renderWidget = (widget) => {
     const isHalfWidth = ['topSources', 'topPages', 'countries', 'browsers'].includes(widget.id);
     const widgetClass = isHalfWidth ? 'md:col-span-1' : 'md:col-span-2';
@@ -464,7 +316,7 @@ export default function Dashboard() {
         <ul className="space-y-2">
           {data.map(item => (
             <li key={item._id} className="flex justify-between">
-              <span>{item._id === 'Twitter / X' ? 'Twitter / X' : (item._id || 'Direct')}</span>
+              <span>{item._id || 'Direct'}</span>
               <span className="font-semibold">{item.count}</span>
             </li>
           ))}
@@ -523,12 +375,6 @@ export default function Dashboard() {
         , widgetClass);
       case 'browsers':
         return renderSection(`Browsers (${selectedMetric})`, renderList(analyticsData.browsers, 'browser'), widgetClass);
-      case 'cohortAnalysis':
-        return renderCohortAnalysis(widgetClass);
-      case 'funnelAnalysis':
-        return renderFunnelAnalysis(widgetClass);
-      case 'twitterAnalytics':
-        return renderTwitterAnalytics();
       default:
         return null;
     }
@@ -564,7 +410,6 @@ export default function Dashboard() {
     );
   };
 
-  // Add this function to get country coordinates
   function getCountryCoordinates(countryName) {
     const coordinates = {
       'United States': [37.0902, -95.7129],
