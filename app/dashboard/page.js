@@ -9,6 +9,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { MoonIcon, SunIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
 import DateRangeSelector from '../components/DateRangeSelector';
+import VisitorsByCountry from '../components/VisitorsByCountry';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import moment from 'moment-timezone';
@@ -21,31 +22,6 @@ const Droppable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Dr
 const Draggable = dynamic(() => import('react-beautiful-dnd').then(mod => mod.Draggable), { ssr: false });
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
-
-function getCountryFlagEmoji(countryCode) {
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt());
-  return String.fromCodePoint(...codePoints);
-}
-
-function getCountryCode(countryName) {
-  const countryCodes = {
-    'United States': 'US',
-    'United Kingdom': 'GB',
-    'Germany': 'DE',
-    'France': 'FR',
-    'Canada': 'CA',
-    'Australia': 'AU',
-    'Japan': 'JP',
-    'China': 'CN',
-    'India': 'IN',
-    'Brazil': 'BR',
-    'Unknown': 'UN',
-  };
-  return countryCodes[countryName] || countryName.slice(0, 2).toUpperCase();
-}
 
 function formatChartLabel(dateString, interval, timeZone) {
   const date = moment.tz(dateString, timeZone);
@@ -67,7 +43,10 @@ export default function Dashboard() {
     topSources: [],
     topPages: [],
     countries: [],
-    browsers: []
+    browsers: [],
+    cohortData: [],
+    funnelData: {},
+    twitterAnalytics: []
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +61,7 @@ export default function Dashboard() {
     { id: 'topSources', title: 'Top Sources' },
     { id: 'topPages', title: 'Top Pages' },
     { id: 'countries', title: 'Visitors by Country' },
-    { id: 'browsers', title: 'Browsers' }
+    { id: 'browsers', title: 'Browsers' },
   ]);
   const router = useRouter();
   const [timeZone, setTimeZone] = useState('UTC');
@@ -307,6 +286,50 @@ export default function Dashboard() {
     }
   };
 
+  const renderCohortAnalysis = (className) => (
+    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8 overflow-x-auto ${className}`}>
+      <h2 className="text-xl font-semibold mb-4">Cohort Analysis</h2>
+      {analyticsData.cohortData && analyticsData.cohortData.length > 0 ? (
+        <table className="min-w-full">
+          <thead>
+            <tr>
+              <th className="px-4 py-2">Cohort</th>
+              {[...Array(30)].map((_, i) => (
+                <th key={i} className="px-4 py-2">Day {i}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {analyticsData.cohortData.map((cohort, index) => (
+              <tr key={index}>
+                <td className="border px-4 py-2">{cohort.cohort}</td>
+                {cohort.retentionData.map((day, dayIndex) => (
+                  <td key={dayIndex} className="border px-4 py-2">
+                    {((day.users / cohort.totalUsers) * 100).toFixed(2)}%
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No cohort data available for the selected period.</p>
+      )}
+    </div>
+  );
+
+  const onDragEnd = (result) => {
+    if (!result.destination) {
+      return;
+    }
+
+    const items = Array.from(dashboardLayout);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setDashboardLayout(items);
+  };
+
   const renderWidget = (widget) => {
     const isHalfWidth = ['topSources', 'topPages', 'countries', 'browsers'].includes(widget.id);
     const widgetClass = isHalfWidth ? 'md:col-span-1' : 'md:col-span-2';
@@ -316,7 +339,7 @@ export default function Dashboard() {
         <ul className="space-y-2">
           {data.map(item => (
             <li key={item._id} className="flex justify-between">
-              <span>{item._id || 'Direct'}</span>
+              <span>{item._id === 'Twitter / X' ? 'Twitter / X' : (item._id || 'Direct')}</span>
               <span className="font-semibold">{item.count}</span>
             </li>
           ))}
@@ -357,24 +380,22 @@ export default function Dashboard() {
       case 'topPages':
         return renderSection(`Top Pages (${selectedMetric})`, renderList(analyticsData.topPages, 'page'), widgetClass);
       case 'countries':
-        return renderSection(`Visitors by Country (${selectedMetric})`, 
-          analyticsData.countries && analyticsData.countries.length > 0 ? (
-            <ul className="space-y-2">
-              {analyticsData.countries.map(country => (
-                <li key={country._id} className="flex justify-between items-center">
-                  <span>
-                    {getCountryFlagEmoji(getCountryCode(country._id))} {country._id}
-                  </span>
-                  <span className="font-semibold">{country.count}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400">No country data available for the selected period.</p>
-          )
-        , widgetClass);
+        return (
+        <VisitorsByCountry 
+          countries={analyticsData.countries} 
+          selectedMetric={selectedMetric} 
+          loading={loading} 
+          className={widgetClass} 
+        />
+        );
       case 'browsers':
         return renderSection(`Browsers (${selectedMetric})`, renderList(analyticsData.browsers, 'browser'), widgetClass);
+      case 'cohortAnalysis':
+        return renderCohortAnalysis(widgetClass);
+      case 'funnelAnalysis':
+        return renderFunnelAnalysis(widgetClass);
+      case 'twitterAnalytics':
+        return renderTwitterAnalytics();
       default:
         return null;
     }
@@ -436,7 +457,6 @@ export default function Dashboard() {
   };
 
   return (
-    <ProtectedPage>
       <div className={`min-h-screen p-2 sm:p-4 transition-colors duration-200 ${darkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-apple-gray text-gray-900'}`}>
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8">
@@ -535,6 +555,5 @@ export default function Dashboard() {
           {renderWorldMap()}
         </div>
       </div>
-    </ProtectedPage>
   );
 }
