@@ -36,6 +36,27 @@ function formatChartLabel(dateString, interval, timeZone) {
   }
 }
 
+const SummaryMetrics = ({ metrics }) => {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {Object.entries(metrics).map(([key, value]) => (
+        <div key={key} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            {key === 'avgDuration' ? 'Avg Duration' : 
+             key === 'bounceRate' ? 'Bounce Rate' :
+             key.charAt(0).toUpperCase() + key.slice(1)}
+          </h3>
+          <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+            {key === 'avgDuration' ? `${(value / 60000).toFixed(2)}m` :
+             key === 'bounceRate' ? `${value.toFixed(2)}%` :
+             value.toLocaleString()}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(new Date());
@@ -64,6 +85,12 @@ export default function Dashboard() {
   const router = useRouter();
   const [timeZone, setTimeZone] = useState('UTC');
   const [comparisonData, setComparisonData] = useState([]);
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    uniqueVisitors: 0,
+    pageviews: 0,
+    avgDuration: 0,
+    bounceRate: 0,
+  });
 
   useEffect(() => {
     // Set default time zone to user's local time zone
@@ -124,6 +151,22 @@ export default function Dashboard() {
 
       setAnalyticsData(currentData);
       setComparisonData(previousData.events || []);
+
+      // Calculate summary metrics
+      const summary = currentData.events.reduce((acc, event) => {
+        acc.uniqueVisitors += event.uniqueVisitors;
+        acc.pageviews += event.pageviews;
+        acc.avgDuration += event.avgDuration;
+        acc.bounceRate += event.bounceRate;
+        return acc;
+      }, { uniqueVisitors: 0, pageviews: 0, avgDuration: 0, bounceRate: 0 });
+
+      // Average the avgDuration and bounceRate
+      summary.avgDuration /= currentData.events.length || 1;
+      summary.bounceRate /= currentData.events.length || 1;
+
+      setSummaryMetrics(summary);
+
       setError(null);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -284,7 +327,6 @@ export default function Dashboard() {
     }
   };
 
-
   const onDragEnd = (result) => {
     if (!result.destination) {
       return;
@@ -364,12 +406,6 @@ export default function Dashboard() {
         );
       case 'browsers':
         return renderSection(`Browsers (${selectedMetric})`, renderList(analyticsData.browsers, 'browser'), widgetClass);
-      case 'cohortAnalysis':
-        return renderCohortAnalysis(widgetClass);
-      case 'funnelAnalysis':
-        return renderFunnelAnalysis(widgetClass);
-      case 'twitterAnalytics':
-        return renderTwitterAnalytics();
       default:
         return null;
     }
@@ -468,6 +504,7 @@ export default function Dashboard() {
           <div className="mb-8">
             <DateRangeSelector onDateChange={handleDateChange} />
           </div>
+          <SummaryMetrics metrics={summaryMetrics} />
           <div className="mb-8">
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:justify-between">
               {['uniqueVisitors', 'pageviews', 'avgDuration', 'bounceRate'].map(metric => (
