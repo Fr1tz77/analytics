@@ -85,7 +85,7 @@ export async function GET(req) {
     const topSources = processTopData(filteredEvents, 'referrer', 'Direct', metric);
     const topPages = processTopData(filteredEvents, 'path', undefined, metric);
     const countries = processTopData(filteredEvents, 'country', undefined, metric);
-    const browsers = processTopData(filteredEvents, 'browser', undefined, metric);
+    const browsers = processTopData(filteredEvents, 'userAgent', undefined, metric);
 
     // Add cohort analysis
     const cohortData = await getCohortData(db, startDate, endDate);
